@@ -63,24 +63,36 @@ namespace testProgram
 
         #endregion
 
+        #region Temperature Codes
+        public static readonly int temperatureCode_polarLimit = 36;
+        public static readonly int temperatureCode_borealLimit = 52;
+        public static readonly int temperatureCode_coolTemperateLimit = 68;
+        public static readonly int temperatureCode_warmTemperateLimit = 75;
+        public static readonly int temperatureCode_tropicalLimit = 87;
+        #endregion
+
+        #region Hydration Codes
         public static readonly int hydCode_OceanWater = 0;
         public static readonly int hydCode_Freshwater = 1;
         public static readonly int hydCode_LandNoHydration = 2;
 
         public static readonly int hydCode_SuperArid = 3;
-        public static readonly int hydCode_Perarid = 4;
         public static readonly int hydCode_Arid = 4;
-        public static readonly int hydCode_SemiArid = 5;
-        public static readonly int hydCode_SubHumid = 6;
-        public static readonly int hydCode_Humid = 7;
-        public static readonly int hydCode_PerHumid = 8;
-        public static readonly int hydCode_SuperHumid = 9;
+        public static readonly int hydCode_Humid = 5;
+        public static readonly int hydCode_SuperHumid = 6;
+        #endregion
+
+
+
+
+
+
 
         public class GeographyGenerator : WorldGen
         {
 
             //  Given an array in ID Map form, print an ASCII representation of the map
-            public static void PrintIDMap(string[] args, int[,] idMap)
+            public static void PrintGeoMap(string[] args, int[,] idMap)
             {
                 #region Parameters 1
                 //  Loads the initial seed for randomization
@@ -125,29 +137,54 @@ namespace testProgram
                 string MAPTYPE = args[index_mapType];
                 #endregion
 
-                List<PrintableCell> landCodeCellsKey = new List<PrintableCell> {
 
-                    //  Water
-                    new PrintableCell(landCode_deepWater,     " ", "#000000", "#000050"),
+                for (int i = 0; i < idMap.GetLength(0); i++)
+                {
+                    Utility.Print.Write(">|", "00A614", "002166");
+                    for (int j = 0; j < idMap.GetLength(1); j++)
+                    {
+                        if (idMap[i,j] == landCode_coastalLand)
+                        {
+                            Utility.Print.Write("~", "F5F000", "00A614");
+                        }
+                        else if (idMap[i, j] == landCode_Land)
+                        {
+                            Utility.Print.Write("~", "00A614", "00A614");
+                        }
+                        else if (idMap[i, j] == landCode_hillLand)
+                        {
+                            Utility.Print.Write("m", "007D0E", "00A614");
+                        }
+                        else if (idMap[i, j] == landCode_mountain)
+                        {
+                            Utility.Print.Write("M", "FFFFFF", "00A614");
+                        } // 0052FF
+                        else if (idMap[i, j] == landCode_coastalWater)
+                        {
+                            Utility.Print.Write("`", "87AFFF", "0052FF");
+                        }
+                        else if (idMap[i, j] == landCode_offcoastWater)
+                        {
+                            Utility.Print.Write(" ", "0034A3", "0034A3");
+                        }
+                        else if (idMap[i, j] == landCode_deepWater)
+                        {
+                            Utility.Print.Write(" ", "002166", "002166");
+                        }
+                        else if (idMap[i, j] == landCode_outOfBounds)
+                        {
+                            Utility.Print.Write("X", "FF0000", "002166");
+                        }
+                        else
+                        {
+                            Utility.Print.Write("X", "FF00C8", "000000");
+                        }
 
-                    new PrintableCell(landCode_offcoastWater, " ", "#0D0D73", "#0D0D73"),
+                    }
+                    Utility.Print.Write("|<", "00A614", "002166");
+                    Console.WriteLine();
+                }
 
-                    new PrintableCell(landCode_coastalWater,  " ", "#151585", "#151585"),
-
-
-                    //  Land
-                    new PrintableCell(landCode_coastalLand,   "~", "#ffff00", "0D660D"),
-
-                    new PrintableCell(landCode_Land,          " ", "#000000", "0D660D"),
-
-                    new PrintableCell(landCode_hillLand,      "m", "#00b700", "0D660D"),
-
-                    new PrintableCell(landCode_mountain,      "@", "#DEDEDE", "4D4D4D")
-
-                };
-                PrintableCell errorPCell = new PrintableCell(null, "X", "#000000", "FF00F2");
-                Console.WriteLine();
-                Utility.Print.RenderArray(idMap, landCodeCellsKey, errorPCell, false);
                 Console.WriteLine();
             }
 
@@ -231,7 +268,7 @@ namespace testProgram
                 {
                     Console.WriteLine("");
                     Console.WriteLine("[GENWORLD]   Generating ID Map post processing:");
-                    PrintIDMap(args, IDMap);
+                    PrintGeoMap(args, IDMap);
                     Console.WriteLine("");
                 }
                 if (verbose)
@@ -297,11 +334,6 @@ namespace testProgram
                     //  Initial Modify coastlines (this is only done to break up the coastlines for better randomization
                     List<List<Coords>> coastlineArray = new List<List<Coords>>();
 
-                    //int chanceCrater = 75;
-
-
-
-
                     for (int cyclesCount = 0; cyclesCount < cycles; cyclesCount++)
                     {
                         coastlineArray = Utility.Matrices.Selection.SelectionSectionEdges(array, landCode_coastalLand, 999, 1);
@@ -346,14 +378,6 @@ namespace testProgram
                             }
                         }
                     }
-
-
-
-
-
-
-
-
 
 
                     if (cleanup)
@@ -510,6 +534,129 @@ namespace testProgram
 
                     return array;
                 }
+
+                public static int[,] deformEdges(string[] args, int[,] array, int craterCharge, int cycles, int low, int targetStart, int targetEnd, int hig, int rangeOfCrater, bool withinTarget = false)
+                {
+                    #region Parameters 1
+                    //  Loads the initial seed for randomization
+                    int INITSEED = Convert.ToInt32(args[index_seed]);
+                    Random random = new Random(INITSEED);
+
+
+                    //  Loads the requested dimensions
+                    string MAPSIZE = Convert.ToString(args[index_mapSize]);
+                    int mapRows;
+                    int mapCols;
+                    switch (MAPSIZE)
+                    {
+                        case "VERY_SMALL":
+                            mapRows = 128;
+                            mapCols = 256;
+                            break;
+                        case "SMALL":
+                            mapRows = 256;
+                            mapCols = 512;
+                            break;
+                        case "MEDIUM":
+                            mapRows = 512;
+                            mapCols = 1024;
+                            break;
+                        case "LARGE":
+                            mapRows = 1024;
+                            mapCols = 2048;
+                            break;
+                        case "VERY_LARGE":
+                            mapRows = 2048;
+                            mapCols = 4096;
+                            break;
+                        default:
+                            //  Defaults to Small
+                            mapRows = 128;
+                            mapCols = 256;
+                            break;
+                    }
+                    int mapsizeModifier = Convert.ToInt32((double)((mapRows + mapCols) / 2)); // 640 on a 256x1024 grid
+
+
+                    //  Loads the parameters for land generation
+                    string MAPTYPE = args[index_mapType];
+
+
+                    #endregion
+
+                    List<List<Coords>> edgesLoL = new List<List<Coords>>();
+                    int[,] passableArray = array;
+                    for (int cyclesCount = 0; cyclesCount < cycles; cyclesCount++)
+                    {
+                        edgesLoL = Utility.Matrices.Selection.SelectionSectionEdges(array, targetStart, targetEnd, 1);
+                        
+                        foreach (List<Coords> edgeList in edgesLoL)
+                        {
+                            //  For each cell at the edge of the chosen gap, either create a crater or a hill
+                            foreach (Coords coordinate in  edgeList)
+                            {
+                                int chanceOfCrater = random.Next(0, 101);
+
+                                List<Coords> circularRegion = Utility.Matrices.Selection.SelectCircleRegion(array, coordinate, rangeOfCrater);
+
+                                //  If above the chance, create a crater
+                                if (chanceOfCrater > craterCharge)
+                                {
+                                    
+                                    foreach (Coords coordinateCircle in circularRegion)
+                                    {
+                                        if (withinTarget)
+                                        {
+                                            if (array[coordinateCircle.x, coordinateCircle.y] >= targetStart && array[coordinateCircle.x, coordinateCircle.y] <= targetEnd)
+                                            {
+                                                passableArray[coordinateCircle.x, coordinateCircle.y] = low;
+                                            }
+                                        }
+                                        else
+                                        {
+                                            if (array[coordinateCircle.x, coordinateCircle.y] < targetStart || array[coordinateCircle.x, coordinateCircle.y] > targetEnd)
+                                            {
+                                                passableArray[coordinateCircle.x, coordinateCircle.y] = low;
+                                            }
+                                        }
+                                    }
+                                    
+                                }
+                                //  Otherwise, raise a hill
+                                else
+                                {
+                                    foreach (Coords coordinateCircle in circularRegion)
+                                    {
+                                        if (withinTarget)
+                                        {
+                                            if (array[coordinateCircle.x, coordinateCircle.y] >= targetStart && array[coordinateCircle.x, coordinateCircle.y] <= targetEnd)
+                                            {
+                                                passableArray[coordinateCircle.x, coordinateCircle.y] = hig;
+                                            }
+
+                                        }
+                                        else
+                                        {
+                                            if (array[coordinateCircle.x, coordinateCircle.y] < targetStart || array[coordinateCircle.x, coordinateCircle.y] > targetEnd)
+                                            {
+                                                passableArray[coordinateCircle.x, coordinateCircle.y] = hig;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            
+
+                        }
+
+
+                    }
+
+
+                    return passableArray;
+                }
+
+
 
 
 
@@ -840,44 +987,55 @@ namespace testProgram
                             }
                         }
                         //  Naturalize coastlines
-                        int randomChanceCrater = random.Next(20, 25);
-                        continentsMap = WorldGen.GeographyGenerator.GeographyGenComponents.naturalizeCoastlines(args, continentsMap, randomChanceCrater, 4, false);
+                        
 
-                        //  Shave off the edges and make it seem more natural
-                        for (int i = 0; i < continentsMap.GetLength(0); i++)
+                        if (continentSize < 4)
                         {
-                            for (int j = 0; j <= bordermodifierEdgesCol; j++)
-                            {
-                                int probabilityCoastCrater = random.Next(0, 101);
-                                if (probabilityCoastCrater >= 40 && j == bordermodifierEdgesCol)
-                                {
-                                    Coords exampleCoord = new Coords(i, j);
-                                    int probabilityRadis = random.Next(mapsizeModifier / 64, mapsizeModifier / 16);
-                                    List<Coords> circCoords = Utility.Matrices.Selection.SelectCircleRegion(continentsMap, exampleCoord, probabilityRadis);
-                                    foreach (Coords cirCoord in circCoords)
-                                    {
-                                        continentsMap[cirCoord.x, cirCoord.y] = landCode_deepWater;
-                                    }
-                                }
-                                continentsMap[i, j] = landCode_deepWater;
-                            }
-                            for (int j = continentsMap.GetLength(1) - bordermodifierEdgesCol; j < continentsMap.GetLength(1); j++)
-                            {
-                                int probabilityCoastCrater = random.Next(0, 101);
-                                if (probabilityCoastCrater >= 40 && j == continentsMap.GetLength(1) - bordermodifierEdgesCol)
-                                {
-                                    Coords exampleCoord = new Coords(i, j);
-                                    int probabilityRadis = random.Next(mapsizeModifier / 64, mapsizeModifier / 16);
-                                    List<Coords> circCoords = Utility.Matrices.Selection.SelectCircleRegion(continentsMap, exampleCoord, probabilityRadis);
-                                    foreach (Coords cirCoord in circCoords)
-                                    {
-                                        continentsMap[cirCoord.x, cirCoord.y] = landCode_deepWater;
-                                    }
-                                }
-
-                                continentsMap[i, j] = landCode_deepWater;
-                            }
+                            int randomChanceCrater = random.Next(15, 45);
+                            continentsMap = WorldGen.GeographyGenerator.GeographyGenComponents.naturalizeCoastlines(args, continentsMap, randomChanceCrater, 7, false);
+                        } 
+                        else
+                        {
+                            int randomChanceCrater = random.Next(20, 25);
+                            continentsMap = WorldGen.GeographyGenerator.GeographyGenComponents.naturalizeCoastlines(args, continentsMap, randomChanceCrater, 4, false);
                         }
+
+
+                            //  Shave off the edges and make it seem more natural
+                            for (int i = 0; i < continentsMap.GetLength(0); i++)
+                            {
+                                for (int j = 0; j <= bordermodifierEdgesCol; j++)
+                                {
+                                    int probabilityCoastCrater = random.Next(0, 101);
+                                    if (probabilityCoastCrater >= 40 && j == bordermodifierEdgesCol)
+                                    {
+                                        Coords exampleCoord = new Coords(i, j);
+                                        int probabilityRadis = random.Next(mapsizeModifier / 64, mapsizeModifier / 16);
+                                        List<Coords> circCoords = Utility.Matrices.Selection.SelectCircleRegion(continentsMap, exampleCoord, probabilityRadis);
+                                        foreach (Coords cirCoord in circCoords)
+                                        {
+                                            continentsMap[cirCoord.x, cirCoord.y] = landCode_deepWater;
+                                        }
+                                    }
+                                    continentsMap[i, j] = landCode_deepWater;
+                                }
+                                for (int j = continentsMap.GetLength(1) - bordermodifierEdgesCol; j < continentsMap.GetLength(1); j++)
+                                {
+                                    int probabilityCoastCrater = random.Next(0, 101);
+                                    if (probabilityCoastCrater >= 40 && j == continentsMap.GetLength(1) - bordermodifierEdgesCol)
+                                    {
+                                        Coords exampleCoord = new Coords(i, j);
+                                        int probabilityRadis = random.Next(mapsizeModifier / 64, mapsizeModifier / 16);
+                                        List<Coords> circCoords = Utility.Matrices.Selection.SelectCircleRegion(continentsMap, exampleCoord, probabilityRadis);
+                                        foreach (Coords cirCoord in circCoords)
+                                        {
+                                            continentsMap[cirCoord.x, cirCoord.y] = landCode_deepWater;
+                                        }
+                                    }
+
+                                    continentsMap[i, j] = landCode_deepWater;
+                                }
+                            }
                         for (int j = 0; j < continentsMap.GetLength(1); j++)
                         {
                             for (int i = 0; i < bordermodifierEdgesRow; i++)
@@ -1092,16 +1250,40 @@ namespace testProgram
                         #endregion
                     }
 
-
-
-                    int lakesIterator = 6;
+                    int lakesIterator = 4;
                     for (int lakeCount = 0; lakeCount < lakesIterator; lakeCount++)
                     {
                         //  Generate lakes
                         double freqWaters = 15;
                         int floor = 10;
                         int[,] generateLakeLandNoise = Utility.Noise.Perlin.GeneratePerlinInt(PrimeArrayMap.GetLength(0), PrimeArrayMap.GetLength(1), freqWaters, 0, 64, random.Next(-99999, 99999));
+                        int[,] generateLakeLandNoiseInverse = generateLakeLandNoise;
+           
+                        //  Invert lakes to lands
+                        for (int i = 0; i < generateLakeLandNoise.GetLength(0); i++)
+                        {
+                            for (int j = 0; j < generateLakeLandNoise.GetLength(1); j++)
+                            {
+                                if (PrimeArrayMap[i, j] < floor)
+                                {
+                                    generateLakeLandNoiseInverse[i, j] = landCode_Land;
+                                }
+                                else
+                                {
+                                    generateLakeLandNoiseInverse[i, j] = landCode_deepWater;
+                                }
+                            }
+                        }
+                        // Naturalize borders
+                        generateLakeLandNoiseInverse = naturalizeCoastlines(args, generateLakeLandNoiseInverse, 65, 5, false);
+                        List<List<Coords>> invCoord = Utility.Matrices.Selection.SelectSections(generateLakeLandNoiseInverse, landCode_Land, landCode_Land);
+                        List<Coords> invCoordList = Utility.Lists.CollapseLists(invCoord);
+                        foreach (Coords coordinates in invCoordList)
+                        {
+                            generateLakeLandNoise[coordinates.x, coordinates.y] = 0;
+                        }
                         //Utility.Print.MatrixPrint.DisplayPerlin(generateLakeLandNoise, floor);
+
                         List<List<Coords>> lakesCoords = Utility.Matrices.Selection.SelectSections(generateLakeLandNoise, 0, floor);
 
                         foreach (List<Coords> lakes in lakesCoords)
@@ -1126,21 +1308,13 @@ namespace testProgram
                                     PrimeArrayMap[lakeCoord.x, lakeCoord.y] = landCode_deepWater;
                                 }
                             }
+                            
 
 
 
                         }
                     }
-
                     
-
-
-
-
-
-
-
-
                     //  Perform more detailed continent modification
                     //  Base convert into a valid map
                     for (int i = 0; i < PrimeArrayMap.GetLength(0); i++)
@@ -1166,6 +1340,7 @@ namespace testProgram
 
                     return PrimeArrayMap;
                 }
+
 
 
                 //  Given a land mass, convert it to be more natural
@@ -1225,7 +1400,7 @@ namespace testProgram
                     
 
                     //  Remove lists below a certain size (i.e Islands)
-                    Utility.Lists.RemoveListBelowSize(landCoords, Convert.ToInt32(((double)mapsizeModifier * 6)));
+                    Utility.Lists.RemoveListBelowSize(landCoords, Convert.ToInt32(((double)mapsizeModifier/4)));
 
                     //  Create the seeds
                     List<Coords> seedsForVoronoi = new List<Coords>();
@@ -1257,6 +1432,9 @@ namespace testProgram
                     //  Convert VoronoiLists to map
                     int[,] voronoiArray = Utility.Matrices.Misc.ConvertCoordstoArray(voronoiList, worldMap.GetLength(0), worldMap.GetLength(1));
 
+
+
+
                     //  Convert Voronoi to Onion Slices
                     List<List<Coords>> onionSlices = new List<List<Coords>>();
                     foreach (List<Coords> coordsList in voronoiList)
@@ -1274,7 +1452,7 @@ namespace testProgram
                     foreach (List<Coords> shape in onionSlices)
                     {
                         int randomChance = random.Next(0, 101);
-                        if (randomChance > 60)
+                        if (randomChance > 15)
                         {
                             foreach (Coords coord in shape)
                             {
@@ -1282,29 +1460,34 @@ namespace testProgram
                             }
                         }
                     }
-                    worldMap = naturalizeMountains(args, worldMap, 30, 2, false);
+                    worldMap = naturalizeMountains(args, worldMap, 60, 2, false);
+                    
                     //  Surrond with hills
-                    List<List<Coords>> hillsAroundMountains = Utility.Matrices.Selection.SelectionSectionEdges(worldMap, landCode_mountain, landCode_mountain, mapsizeModifier / 128);
+                    List<List<Coords>> hillsAroundMountains = Utility.Matrices.Selection.SelectionSectionEdges(worldMap, -999999, landCode_hillLand, mapsizeModifier / 64);
                     foreach (List<Coords> coordsL in hillsAroundMountains) { 
                         foreach (Coords coordinates in coordsL)
                         {
-                            worldMap[coordinates.x, coordinates.y] = landCode_hillLand;
+                            int randomChance = random.Next(0, 101);
+                            if (randomChance > 50)
+                            {
+                                worldMap[coordinates.x, coordinates.y] = landCode_hillLand;
+                            } 
+                            else
+                            {
+                                worldMap[coordinates.x, coordinates.y] = landCode_mountain;
+                            }
+                            
                         }
                     }
 
-
-
-
-
-
-
                     if (debug_Printmap)
                     {
-                        Utility.Matrices.Complex.Voronoi.VoronoiTestPrint(naturalMap, voronoiList, seedsForVoronoi);
+                        //Utility.Matrices.Complex.Voronoi.VoronoiTestPrint(naturalMap, voronoiList, seedsForVoronoi);
 
                         
                     }
 
+                    //  Generate rolling hills
                     double freqHills = 20;
                     int floor = 8;
                     int[,] generateHillLandNoise = Utility.Noise.Perlin.GeneratePerlinInt(worldMap.GetLength(0), worldMap.GetLength(1), freqHills, 0, 32, random.Next(-99999, 99999));
@@ -1329,7 +1512,7 @@ namespace testProgram
 
 
                     //  Set Edges and Coastlines
-                    List<List<Coords>> coastLandEdges = Utility.Matrices.Selection.SelectionSectionEdges(worldMap, landCode_deepWater, landCode_coastalWater, mapsizeModifier / 64);
+                    List<List<Coords>> coastLandEdges = Utility.Matrices.Selection.SelectionSectionEdges(worldMap, landCode_deepWater, landCode_coastalWater, mapsizeModifier / 128);
                     List<List<Coords>> LandEdges = Utility.Matrices.Selection.SelectionSectionEdges(worldMap, landCode_deepWater, landCode_coastalWater, mapsizeModifier / 32);
                     foreach (List<Coords> coordsList in LandEdges)
                     {
@@ -1368,8 +1551,6 @@ namespace testProgram
                 }
                 #endregion
 
-
-                 
                 public static int[,] GenerateContinentsAndIslands(string[] args)
                 {
                     #region Parameters 1
@@ -1419,7 +1600,6 @@ namespace testProgram
 
                     #endregion
 
-
                     #region Debug Parameter
                     bool verbose = true;
                     bool printmaps = true;
@@ -1428,7 +1608,7 @@ namespace testProgram
                     bool displayPlacements = true;
                     bool displayShapePlacements = true;
 
-                    bool printIslands = true;
+                    bool printIslands = false;
                     #endregion
 
 
@@ -1436,16 +1616,21 @@ namespace testProgram
                     int[,] worldMap = WorldGen.GeographyGenerator.GeographyGenerator.GeographyGenComponents.getOceanicArray(args);
 
 
-                //  This next section generates a list of continents. For CaI, we will first generate a couple big continents
+                    //  This next section generates a list of continents. For CaI, we will first generate a couple big continents
 
 
-                    #region Continent Generator
+                    #region Generate Continents
 
                     restartTheProcess:
                     if (verbose)
                     {
                         Console.WriteLine("Generating Continents");
                     }
+
+
+
+                    
+
                     List<List<Coords>> continentsList = new List<List<Coords>>();
                     List<List<Coords>> continentsListExtended = new List<List<Coords>>();
                     int continentAmount = 3;
@@ -1457,12 +1642,17 @@ namespace testProgram
 
                         //  Create a random landmass
                         int sizeOfContinent = random.Next(4, 5);
-                        //sizeOfContinent = 4;
+                        
+                        //  
                         int[,] generatedContinent = WorldGen.GeographyGenerator.GeographyGenComponents.GenerateLandmassNoise(args, sizeOfContinent);
                         
+
+
                         //  Select it and collapse it to a list of coords
                         List<List<Coords>> mapCoordsLoL = Utility.Matrices.Selection.SelectSections(generatedContinent, landCode_coastalLand, 9999, false, false);
                         List<Coords> mapCoords = Utility.Lists.CollapseLists(mapCoordsLoL);
+
+
 
                         //  Now, we will generate the edges of the continent
                         int edgeRange = mapsizeModifier / 32;
@@ -1472,48 +1662,17 @@ namespace testProgram
                         //  Include the landCoords in edgesCoords
                         edgesCoords.AddRange(mapCoords);
 
-                        if (printmaps)
-                        {
-                            int[,] printingMap = new int[mapRows, mapCols];
-                            //  Add landCoords to the map
-                            foreach (Coords landCoords in edgesCoords)
-                            {
-                                printingMap[landCoords.x, landCoords.y] = landCode_outOfBounds;
-                            }
-                            foreach (Coords landCoords in mapCoords)
-                            {
-                                printingMap[landCoords.x, landCoords.y] = landCode_Land;
-                            }
-                            for (int i = 0; i < mapRows; i++)
-                            {
-                                Utility.Print.Write(">|", "00FFF5");
-                                for (int j = 0; j < mapCols; j++)
-                                {
-                                    if (printingMap[i, j] == landCode_Land)
-                                    {
-                                        Utility.Print.Write("-", "00FF33"); 
-                                    }
-                                    else if (printingMap[i, j] == landCode_outOfBounds)
-                                    {
-                                        Utility.Print.Write("X", "FF0000");
-                                    }
-                                    else
-                                    {
-                                        Utility.Print.Write(" ", "FF0000");
-                                    }
-                                }
-                                Utility.Print.Write("|<", "00FFF5");
-                                Console.WriteLine();
-
-                            }
-                            Console.WriteLine();
-                        }
-
+                        
 
 
                         continentsList.Add(mapCoords);
                         continentsListExtended.Add(edgesCoords);
                     }
+
+                    
+
+
+
 
                     int maximumReturns = 25;
 
@@ -1533,9 +1692,11 @@ namespace testProgram
                     int randomlySelectedIndex = random.Next(0, placements.Count);
                     if (verbose)
                     {
-                        Console.Write("Index: " + randomlySelectedIndex);
-                        Console.WriteLine("Placements size: " + placements.Count());
+                        Console.WriteLine("Index: " + randomlySelectedIndex);
+                        Console.WriteLine("Placement size: " + placements.Count());
+                        Console.WriteLine("Further Generation shall continue");
                     }
+
                     
                     Coords[] selectedPlacement = placements[randomlySelectedIndex];
 
@@ -1560,27 +1721,75 @@ namespace testProgram
                     #endregion
 
 
+                    
 
-
+                    #region Generate Big Islands
                     //  TODO: Generate Islands
                     List<List<Coords>> islandsCoords = new List<List<Coords>>();
-                    int amountIslands = 1;
+                    int amountIslands = 6;
+                    int islandSizeMax = 4;
                     for (int isCount = 0; isCount < amountIslands; isCount++)
                     {
-                        int islandSize = random.Next(1, 5);
-                        int[,] islandMap = WorldGen.GeographyGenerator.GeographyGenerator.GeographyGenComponents.GenerateLandmassNoise(args, islandSize);
-                        
+                        int islandSize = random.Next(1, islandSizeMax);
+                        if (islandSize >= 4)
+                        {
+                            int chanceOfBig = random.Next(0, 101);
+                            if (chanceOfBig >= 75)
+                            {
+                                islandSize = 2;
+                            }
+                        }
 
+                        string[] passableArgs = args;
+                        args[index_seed] = Convert.ToString(random.Next(-9999999, 9999999));
+                        int[,] islandMap = WorldGen.GeographyGenerator.GeographyGenerator.GeographyGenComponents.GenerateLandmassNoise(passableArgs, islandSize);
+
+                        List<List<Coords>> islandsCoordsLists = Utility.Matrices.Selection.SelectSections(islandMap, landCode_coastalLand, 9999);
+                        List<Coords> newIsland = Utility.Lists.CollapseLists(islandsCoordsLists);
+                        islandsCoords.Add(newIsland);
 
                         if (printIslands)
                         {
-                            WorldGen.GeographyGenerator.GeographyGenerator.GeographyGenComponents.PrintIDMap(args, islandMap);
+                            WorldGen.GeographyGenerator.GeographyGenerator.GeographyGenComponents.PrintGeoMap(args, islandMap);
+                        }
+                    }
+
+                    //  Add as many islands as there are or you can to the array
+                    int[,] passableArray = worldMap;
+                    foreach (List<Coords> islandShape in islandsCoords)
+                    {
+                        List<Coords> centralCoords = Utility.Matrices.Complex.Packing.FindValidPlacementsInArray(passableArray, islandShape, landCode_coastalLand, 9999, mapsizeModifier / 8);
+                        if (centralCoords.Count < 1)
+                        {
+                            break;
                         }
 
+                        int randomindex = random.Next(0, centralCoords.Count);
+                        Coords newCenter = centralCoords[randomindex];
+                        List<Coords> islandTranslated = Utility.Matrices.Transformation.TranslateSection(islandShape, passableArray.GetLength(0), passableArray.GetLength(1), newCenter);
+                        if (islandTranslated.Count < islandShape.Count)
+                        {
+                            continue;
+                        }
+
+
+                        foreach (Coords islandCoord in islandTranslated)
+                        {
+                            worldMap[islandCoord.x, islandCoord.y] = landCode_Land;
+                        }
                     }
+                    #endregion
+
+                    
+
+
 
 
                     //  TODO: Naturalize the Continents
+                    if (verbose)
+                    {
+                        Console.WriteLine("Naturalizing land");
+                    }
                     worldMap = TurnLandMassIntoNatural(args, worldMap);
 
                     return worldMap;
@@ -1741,14 +1950,6 @@ namespace testProgram
                 {
                     List<PrintableCell> landCodeCellsKey = new List<PrintableCell>();
 
-
-
-                    int polarLow = 36;
-                    int borealHigh = 52;
-                    int cTempHigh = 68;
-                    int wTempHigh = 75;
-                    int sTropHigh = 87;
-
                     for (int i = 0; i < temperatureMap.GetLength(0); i++)
                     {
                         Console.ForegroundColor = ConsoleColor.White;
@@ -1759,32 +1960,32 @@ namespace testProgram
                             if (worldMap[i,j] >= landCode_coastalLand)
                             {
                                 //  Polar
-                                if (temperatureMap[i, j] < polarLow)
+                                if (temperatureMap[i, j] < temperatureCode_polarLimit)
                                 {
                                     Utility.Print.Write(" ", "#000000", "#0419BA");
                                 }
                                 //  Boreal
-                                else if (temperatureMap[i, j] >= polarLow && temperatureMap[i, j] < borealHigh)
+                                else if (temperatureMap[i, j] >= temperatureCode_polarLimit && temperatureMap[i, j] < temperatureCode_borealLimit)
                                 {
                                     Utility.Print.Write(" ", "#000000", "#0cd0ff");
                                 }
                                 //  Cool Temperate
-                                else if (temperatureMap[i, j] >= borealHigh && temperatureMap[i, j] < cTempHigh)
+                                else if (temperatureMap[i, j] >= temperatureCode_borealLimit && temperatureMap[i, j] < temperatureCode_coolTemperateLimit)
                                 {
                                     Utility.Print.Write(" ", "#000000", "#267808");
                                 }
                                 //  Warm Temperate
-                                else if (temperatureMap[i, j] >= cTempHigh && temperatureMap[i, j] < wTempHigh)
+                                else if (temperatureMap[i, j] >= temperatureCode_coolTemperateLimit && temperatureMap[i, j] < temperatureCode_warmTemperateLimit)
                                 {
                                     Utility.Print.Write(" ", "#000000", "#98e601");
                                 }
                                 //  Sub Tropical
-                                else if (temperatureMap[i, j] >= wTempHigh && temperatureMap[i, j] < sTropHigh)
+                                else if (temperatureMap[i, j] >= temperatureCode_warmTemperateLimit && temperatureMap[i, j] < temperatureCode_tropicalLimit)
                                 {
                                     Utility.Print.Write(" ", "#000000", "#ffaa01");
                                 }
                                 //  Scorching
-                                else if (temperatureMap[i, j] >= sTropHigh)
+                                else if (temperatureMap[i, j] >= temperatureCode_tropicalLimit)
                                 {
                                     Utility.Print.Write(" ", "#000000", "#ff5302");
                                 }
@@ -1799,32 +2000,32 @@ namespace testProgram
                                 else
                                 {
                                     //  Polar
-                                    if (temperatureMap[i, j] < polarLow)
+                                    if (temperatureMap[i, j] < temperatureCode_polarLimit)
                                     {
                                         Utility.Print.Write(" ", "#000000", "#0419BA");
                                     }
                                     //  Boreal
-                                    else if (temperatureMap[i, j] >= polarLow && temperatureMap[i, j] < borealHigh)
+                                    else if (temperatureMap[i, j] >= temperatureCode_polarLimit && temperatureMap[i, j] < temperatureCode_borealLimit)
                                     {
                                         Utility.Print.Write(" ", "#000000", "#0cd0ff");
                                     }
                                     //  Cool Temperate
-                                    else if (temperatureMap[i, j] >= borealHigh && temperatureMap[i, j] < cTempHigh)
+                                    else if (temperatureMap[i, j] >= temperatureCode_borealLimit && temperatureMap[i, j] < temperatureCode_coolTemperateLimit)
                                     {
                                         Utility.Print.Write(" ", "#000000", "#267808");
                                     }
                                     //  Warm Temperate
-                                    else if (temperatureMap[i, j] >= cTempHigh && temperatureMap[i, j] < wTempHigh)
+                                    else if (temperatureMap[i, j] >= temperatureCode_coolTemperateLimit && temperatureMap[i, j] < temperatureCode_warmTemperateLimit)
                                     {
                                         Utility.Print.Write(" ", "#000000", "#98e601");
                                     }
                                     //  Sub Tropical
-                                    else if (temperatureMap[i, j] >= wTempHigh && temperatureMap[i, j] < sTropHigh)
+                                    else if (temperatureMap[i, j] >= temperatureCode_warmTemperateLimit && temperatureMap[i, j] < temperatureCode_tropicalLimit)
                                     {
                                         Utility.Print.Write(" ", "#000000", "#ffaa01");
                                     }
                                     //  Scorching
-                                    else if (temperatureMap[i, j] >= sTropHigh)
+                                    else if (temperatureMap[i, j] >= temperatureCode_tropicalLimit)
                                     {
                                         Utility.Print.Write(" ", "#000000", "#ff5302");
                                     }
@@ -2012,41 +2213,23 @@ namespace testProgram
 
                             else if (hydrationMap[i, j] == hydCode_SuperArid)
                             {
-                                Utility.Print.Write(" ", "FF5638", "FF5638");
+                                Utility.Print.Write(" ", "#f80104", "#f80104");
                             }
-                            else if (hydrationMap[i, j] == hydCode_Perarid)
-                            {
-                                Utility.Print.Write(" ", "DBB65E", "DBB65E");
-                            }
+                            
                             else if (hydrationMap[i, j] == hydCode_Arid)
                             {
-                                Utility.Print.Write(" ", "D4D16C", "D4D16C");
+                                Utility.Print.Write(" ", "#e2b22c", "#e2b22c");
                             }
-                            else if (hydrationMap[i, j] == hydCode_SemiArid)
-                            {
-                                Utility.Print.Write(" ", "BDD15A", "BDD15A");
-                            }
-                            else if (hydrationMap[i, j] == hydCode_SubHumid)
-                            {
-                                Utility.Print.Write(" ", "77CC35", "77CC35");
-                            }
+                            
                             else if (hydrationMap[i, j] == hydCode_Humid)
                             {
-                                Utility.Print.Write(" ", "1FD11F", "1FD11F");
+                                Utility.Print.Write(" ", "#5e8300", "#5e8300");
                             }
-                            else if (hydrationMap[i, j] == hydCode_PerHumid)
-                            {
-                                Utility.Print.Write(" ", "0DB50D", "0DB50D");
-                            }
+                            
                             else if (hydrationMap[i, j] == hydCode_SuperHumid)
                             {
-                                Utility.Print.Write("`", "03A103", "007800");
+                                Utility.Print.Write(" ", "#013f00", "#013f00");
                             }
-
-
-
-
-
 
                             else
                             {
@@ -2112,14 +2295,11 @@ namespace testProgram
                         }
                     }
 
-
-
-
-                    // Set all land to LandHydration
+                    // Set all land to hydCode_Arid
                     List<List<Coords>> landCoords = Utility.Matrices.Selection.SelectSections(geoMap, landCode_coastalLand, 9999, false, false);
                     foreach (List<Coords> list in landCoords) {
                         foreach (Coords coord in list) {
-                            hydrationMap[coord.x, coord.y] = hydCode_SuperArid;
+                            hydrationMap[coord.x, coord.y] = hydCode_Arid;
                         }
                     }
 
@@ -2133,41 +2313,19 @@ namespace testProgram
                         }
                     }
 
-
-
-
                     //  Set all tiles next to lakes as hydrated
                     List<List<Coords>> nextToFresh = Utility.Matrices.Selection.SelectionSectionEdges(hydrationMap, hydCode_Freshwater, hydCode_Freshwater, mapsizeModifier/128);
-                    List<List<Coords>> nextTonNextToFresh = Utility.Matrices.Selection.SelectionSectionEdges(hydrationMap, hydCode_Freshwater, hydCode_Freshwater, mapsizeModifier / 64);
-                    List<List<Coords>> nextTonNextToNextFresh = Utility.Matrices.Selection.SelectionSectionEdges(hydrationMap, hydCode_Freshwater, hydCode_Freshwater, mapsizeModifier / 32);
-                    //  Set hydrations near the coastlines to be more humid
-                    foreach (List<Coords> coordinates in nextTonNextToNextFresh)
+                    List<List<Coords>> nextTonNextOffset1 = Utility.Matrices.Selection.SelectionSectionEdges(hydrationMap, hydCode_Freshwater, hydCode_Freshwater, mapsizeModifier / 64);
+                    //List<List<Coords>> nextToFreshOffset2 = Utility.Matrices.Selection.SelectionSectionEdges(hydrationMap, hydCode_Freshwater, hydCode_Freshwater, mapsizeModifier / 32);
+
+                    foreach (List<Coords> coordinates in nextTonNextOffset1)
                     {
                         foreach (Coords coords in coordinates)
                         {
                             if (geoMap[coords.x, coords.y] >= landCode_coastalLand)
                             {
-                                //hydrationMap[coords.x, coords.y] = hydCode_Humid;
                                 hydrationMap[coords.x, coords.y]++;
 
-                            }
-
-                        }
-                    }
-                    foreach (List<Coords> coordinates in nextTonNextToFresh)
-                    {
-                        foreach (Coords coords in coordinates)
-                        {
-                            if (geoMap[coords.x, coords.y] >= landCode_coastalLand)
-                            {
-                                if (hydrationMap[coords.x, coords.y] >= hydCode_LandNoHydration && hydrationMap[coords.x, coords.y] <= hydCode_SuperHumid)
-                                {
-
-                                    //hydrationMap[coords.x, coords.y] = hydCode_SubHumid;
-                                    hydrationMap[coords.x, coords.y]++;
-                                    hydrationMap[coords.x, coords.y]++;
-                                }
-                                
                             }
 
                         }
@@ -2177,10 +2335,8 @@ namespace testProgram
                         {
                             if (geoMap[coords.x, coords.y] >= landCode_coastalLand)
                             {
-                                //hydrationMap[coords.x, coords.y] = hydCode_Humid;
                                 hydrationMap[coords.x, coords.y]++;
-                                hydrationMap[coords.x, coords.y]++;
-                                hydrationMap[coords.x, coords.y]++;
+
                             }
                             
                         }
@@ -2189,26 +2345,9 @@ namespace testProgram
 
                     //  Set all tiles next to oceans as hydrated
                     List<List<Coords>> nextToOcean = Utility.Matrices.Selection.SelectionSectionEdges(hydrationMap, hydCode_OceanWater, hydCode_OceanWater, mapsizeModifier / 64);
-                    List<List<Coords>> nextToNexToOcean = Utility.Matrices.Selection.SelectionSectionEdges(hydrationMap, hydCode_OceanWater, hydCode_OceanWater, mapsizeModifier / 32);
+                    //List<List<Coords>> nextToOceanOffset1 = Utility.Matrices.Selection.SelectionSectionEdges(hydrationMap, hydCode_OceanWater, hydCode_OceanWater, mapsizeModifier / 32);
                     //  Set hydrations near the coastlines to be more humid
-                    foreach (List<Coords> coordinates in nextToNexToOcean)
-                    {
-                        foreach (Coords coords in coordinates)
-                        {
-                            if (geoMap[coords.x, coords.y] >= landCode_coastalLand)
-                            {
-                                if (hydrationMap[coords.x, coords.y] >= hydCode_LandNoHydration && hydrationMap[coords.x, coords.y] <= hydCode_SuperHumid)
-                                {
-                                    //hydrationMap[coords.x, coords.y] = hydCode_SubHumid;
-                                    //hydrationMap[coords.x, coords.y]++;
-                                    hydrationMap[coords.x, coords.y]++;
-                                }
-
-                            }
-
-                        }
-                    }
-
+                    
                     foreach (List<Coords> coordinates in nextToOcean)
                     {
                         foreach (Coords coords in coordinates)
@@ -2218,40 +2357,13 @@ namespace testProgram
                                 //hydrationMap[coords.x, coords.y] = hydCode_Humid;
                                 //hydrationMap[coords.x, coords.y]++;
                                 hydrationMap[coords.x, coords.y]++;
-                                hydrationMap[coords.x, coords.y]++;
                             }
+                                        
 
                         }
                     }
+                    
 
-
-
-
-                    //  Set hydrations near the poles to be less humid
-
-
-
-
-
-
-                    // Double Check that no land tiles are out of bounds
-                    for (int i = 0; i < hydrationMap.GetLength(0); i++)
-                    {
-                        for (int j = 0; j < hydrationMap.GetLength(1); j++)
-                        {
-                            if (geoMap[i,j] >= landCode_coastalLand)
-                            {
-                                if (hydrationMap[i,j] < hydCode_LandNoHydration )
-                                {
-                                    hydrationMap[i, j] = hydCode_SuperArid;
-                                }
-                                else if (hydrationMap[i, j] > hydCode_SuperHumid)
-                                {
-                                    hydrationMap[i, j] = hydCode_SuperHumid;
-                                }
-                            } 
-                        }
-                    }
 
                     //  Reset all water tiles to their proper setting
                     List<List<Coords>> waterTiles = Utility.Matrices.Selection.SelectSections(geoMap, landCode_deepWater, landCode_coastalWater);
@@ -2331,7 +2443,7 @@ namespace testProgram
             if (printMapsAsGenerated)
             {
                 Console.WriteLine("GENWORLD:    Geography Map");
-                GeographyGenerator.PrintIDMap(args, GeographyMap);
+                GeographyGenerator.PrintGeoMap(args, GeographyMap);
             }
 
             //  TODO: Adjust the map to the proper size
