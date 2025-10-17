@@ -698,60 +698,7 @@ namespace Utility
         {
 
 
-            #region Matrix Manipulation
-            // RotateSection 2D matrix clockwise n times (each rotation = 90 degrees)
-            public static T[,] Rotate2DMatrix<T>(T[,] input, int rotations)
-            {
-                int rowCount = input.GetLength(0);
-                int colCount = input.GetLength(1);
-
-                // Normalize rotations (4 rotations = original array)
-                rotations = ((rotations % 4) + 4) % 4;
-
-                T[,] result = input;
-
-                for (int r = 0; r < rotations; r++)
-                {
-                    T[,] rotated = new T[colCount, rowCount];
-
-                    for (int i = 0; i < rowCount; i++)
-                    {
-                        for (int j = 0; j < colCount; j++)
-                        {
-                            rotated[j, rowCount - 1 - i] = result[i, j];
-                        }
-                    }
-
-                    result = rotated;
-                    rowCount = result.GetLength(0);
-                    colCount = result.GetLength(1);
-                }
-
-                return result;
-            }
-
-            // ReflectSection 2D matrix vertically and/or horizontally
-            public static T[,] Flip2DMatrix<T>(T[,] input, bool verticalFlip, bool horizontalFlip)
-            {
-                int rowCount = input.GetLength(0);
-                int colCount = input.GetLength(1);
-
-                T[,] result = new T[rowCount, colCount];
-
-                for (int i = 0; i < rowCount; i++)
-                {
-                    for (int j = 0; j < colCount; j++)
-                    {
-                        int newI = verticalFlip ? rowCount - 1 - i : i;
-                        int newJ = horizontalFlip ? colCount - 1 - j : j;
-
-                        result[newI, newJ] = input[i, j];
-                    }
-                }
-
-                return result;
-            }
-            #endregion
+            
 
             #region Section Transformations
             //  This function gets the Coords closest to index [0,0], priorizing rows over columns.
@@ -952,8 +899,8 @@ namespace Utility
                     int cols = sourcegrid.GetLength(1);
 
                     int[,] grid = sourcegrid;
-                    Utility.Matrices.Transformation.Rotate2DMatrix(grid, 1);
-                    Utility.Matrices.Transformation.Flip2DMatrix(grid, true, true);
+                    Utility.Matrices.Misc.Rotate2DMatrix(grid, 1);
+                    Utility.Matrices.Misc.Flip2DMatrix(grid, true, true);
 
 
                     // Ownership grid: -1 = unclaimed, otherwise index of team
@@ -1390,26 +1337,13 @@ namespace Utility
                     return placements;
                 }
 
-
-
-
-
-
-
-
-
-            }
-
-            
-            public class MiscDebug
-            {
-                //  Finds valid starting points given an array
-                public static List<Coords> FindValidIslandPlacementsInArray(int[,] inputArray, List<Coords> sectionList, int rangeMin, int rangeMax, int distance, bool horizontalWrapping, bool verticalWrapping)
+                //  Given an already loaded array, find a list of valid placements for one shape
+                public static List<Coords> FindValidPlacementsInArray(int[,] inputArray, List<Coords> shape, int rangeMin, int rangeMax, int distance, bool horizontalWrapping = false, bool verticalWrapping = false)
                 {
                     int rows = inputArray.GetLength(0);
                     int cols = inputArray.GetLength(1);
                     var validStarts = new List<Coords>();
-                    if (sectionList == null || sectionList.Count == 0)
+                    if (shape == null || shape.Count == 0)
                     {
                         return validStarts;
                     }
@@ -1430,9 +1364,17 @@ namespace Utility
                             //  Iterates through all tiles not directly within a forbidden tile
                             if (!cellsExcluded.Contains(newStart))
                             {
-
-                                List<Coords> translateList = Utility.Matrices.Transformation.TranslateSection(sectionList, rows, cols, newStart, false, horizontalWrapping, verticalWrapping);
+                                List<Coords> translateList = Utility.Matrices.Transformation.TranslateSection(shape, rows, cols, newStart, true, horizontalWrapping, verticalWrapping);
                                 bool overlaps = false;
+
+                                //  Check that translateList is not out of bounds
+                                if (translateList.Count < shape.Count)
+                                {
+                                    overlaps = true;
+                                    goto overlapGoto;
+                                }
+
+
                                 //  Tests all cells with a translated list for overlapping
                                 foreach (Coords cellcoord in translateList)
                                 {
@@ -1442,7 +1384,7 @@ namespace Utility
                                         goto overlapGoto;
                                     }
                                 }
-                            overlapGoto:
+                                overlapGoto:
                                 if (!overlaps)
                                 {
                                     validStarts.Add(newStart);
@@ -1455,8 +1397,16 @@ namespace Utility
                     return validStarts;
                 }
 
-                
+
+
+
+
+
+
             }
+
+            
+            
 
 
         }
@@ -1527,7 +1477,7 @@ namespace Utility
                 return array;
             }
 
-            #region Apply Influence within Arrays
+            
             public static int[,] InfluenceArray(double[,] influence, int[,] baseMap, double radiationStrength)
             {
                 int rows = baseMap.GetLength(0);
@@ -1572,8 +1522,113 @@ namespace Utility
                 return result;
             }
 
-            #endregion
 
+
+            public static T[,] ResizeAndCenter<T>(T[,] source, int newRows, int newCols, object filler = null)
+            {
+                int oldRows = source.GetLength(0);
+                int oldCols = source.GetLength(1);
+
+                // Create new array
+                T[,] result = new T[newRows, newCols];
+
+                // Try to cast the filler to the correct type
+                T fillerValue = default;
+                bool hasFiller = false;
+                if (filler is T typedFiller)
+                {
+                    fillerValue = typedFiller;
+                    hasFiller = true;
+                }
+
+                // Fill new array with filler or null/default
+                for (int r = 0; r < newRows; r++)
+                {
+                    for (int c = 0; c < newCols; c++)
+                    {
+                        result[r, c] = hasFiller ? fillerValue : default;
+                    }
+                }
+
+                // Compute top-left offset (centered with top-left bias)
+                int rowOffset = Math.Max(0, (newRows - oldRows) / 2);
+                int colOffset = Math.Max(0, (newCols - oldCols) / 2);
+
+                // Compute start positions in old array if new one is smaller
+                int oldRowStart = Math.Max(0, (oldRows - newRows) / 2);
+                int oldColStart = Math.Max(0, (oldCols - newCols) / 2);
+
+                // Compute copy dimensions
+                int copyRows = Math.Min(oldRows, newRows);
+                int copyCols = Math.Min(oldCols, newCols);
+
+                // Copy overlapping region
+                for (int r = 0; r < copyRows; r++)
+                {
+                    for (int c = 0; c < copyCols; c++)
+                    {
+                        result[r + rowOffset, c + colOffset] = source[r + oldRowStart, c + oldColStart];
+                    }
+                }
+
+                return result;
+            }
+
+
+            #region Matrix Manipulation
+            // RotateSection 2D matrix clockwise n times (each rotation = 90 degrees)
+            public static T[,] Rotate2DMatrix<T>(T[,] input, int rotations)
+            {
+                int rowCount = input.GetLength(0);
+                int colCount = input.GetLength(1);
+
+                // Normalize rotations (4 rotations = original array)
+                rotations = ((rotations % 4) + 4) % 4;
+
+                T[,] result = input;
+
+                for (int r = 0; r < rotations; r++)
+                {
+                    T[,] rotated = new T[colCount, rowCount];
+
+                    for (int i = 0; i < rowCount; i++)
+                    {
+                        for (int j = 0; j < colCount; j++)
+                        {
+                            rotated[j, rowCount - 1 - i] = result[i, j];
+                        }
+                    }
+
+                    result = rotated;
+                    rowCount = result.GetLength(0);
+                    colCount = result.GetLength(1);
+                }
+
+                return result;
+            }
+
+            // ReflectSection 2D matrix vertically and/or horizontally
+            public static T[,] Flip2DMatrix<T>(T[,] input, bool verticalFlip, bool horizontalFlip)
+            {
+                int rowCount = input.GetLength(0);
+                int colCount = input.GetLength(1);
+
+                T[,] result = new T[rowCount, colCount];
+
+                for (int i = 0; i < rowCount; i++)
+                {
+                    for (int j = 0; j < colCount; j++)
+                    {
+                        int newI = verticalFlip ? rowCount - 1 - i : i;
+                        int newJ = horizontalFlip ? colCount - 1 - j : j;
+
+                        result[newI, newJ] = input[i, j];
+                    }
+                }
+
+                return result;
+            }
+            #endregion
 
         }
 
@@ -1844,11 +1899,18 @@ namespace Utility
         private static (int r, int g, int b) HexToRgb(string hex)
         {
             if (string.IsNullOrWhiteSpace(hex))
-                throw new ArgumentException("Color cannot be empty");
+            { 
+                throw new ArgumentException("Color cannot be empty"); 
+            }
 
             if (hex.StartsWith("#")) hex = hex[1..];
+
             if (hex.Length != 6)
-                throw new ArgumentException("Hex color must be in format #RRGGBB or RRGGBB");
+            {
+                //  TODO: If not valid, set it to plain white
+                //throw new ArgumentException("Hex color " + hex + " must be in format #RRGGBB or RRGGBB"); 
+                hex = "#FFFFFF";
+            }
 
             int r = Convert.ToInt32(hex[..2], 16);
             int g = Convert.ToInt32(hex.Substring(2, 2), 16);
