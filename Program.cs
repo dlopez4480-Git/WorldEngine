@@ -165,7 +165,7 @@ namespace testProgram
                 }
                 Console.WriteLine("Continent num: " + count + " generated ");
                 Console.WriteLine();
-                WorldGen.GeographyGenerator.GeographyGenerator.PrintIDMap(args, tester);
+                WorldGen.GeographyGenerator.GeographyGenerator.PrintGeoMap(args, tester);
                 Console.WriteLine();
 
             }
@@ -228,7 +228,7 @@ namespace testProgram
 
 
             // Print the new packed MAP
-            WorldGen.GeographyGenerator.PrintIDMap(args, canvas);
+            WorldGen.GeographyGenerator.PrintGeoMap(args, canvas);
             int[,] climateMap = WorldGen.ClimateBiomeGenerator.TemperatureGenComponents.generateTemperatureMap(args, canvas);
             WorldGen.ClimateBiomeGenerator.TemperatureGenComponents.printTemperatureMap(args, climateMap, canvas, true);
 
@@ -275,7 +275,7 @@ namespace testProgram
             };
 
             int[,] testingarr = WorldGen.GeographyGenerator.GeographyGenComponents.GenerateLandmassNoise(args, 5);
-            WorldGen.GeographyGenerator.PrintIDMap(args, testingarr);
+            WorldGen.GeographyGenerator.PrintGeoMap(args, testingarr);
             //  Get a coords list
             List<List<Coords>> coordsConts = Utility.Matrices.Selection.SelectSections(testingarr, landCode_coastalLand, 9999, false, false);
             List<Coords> coords = Utility.Lists.CollapseLists(coordsConts);
@@ -287,7 +287,7 @@ namespace testProgram
             {
                 originalMap[coordsTile.x, coordsTile.y] = landCode_Land;
             }
-            WorldGen.GeographyGenerator.PrintIDMap(args, originalMap);
+            WorldGen.GeographyGenerator.PrintGeoMap(args, originalMap);
 
 
 
@@ -299,7 +299,7 @@ namespace testProgram
             {
                 testTranslation[coordsTile.x, coordsTile.y] = landCode_Land;
             }
-            WorldGen.GeographyGenerator.PrintIDMap(args, testTranslation);
+            WorldGen.GeographyGenerator.PrintGeoMap(args, testTranslation);
 
             //  Create a list of reflected coords
             List<Coords> reflectedCoords = Utility.Matrices.Transformation.ReflectSection(coords, testingarr.GetLength(0), testingarr.GetLength(1), true, true);
@@ -308,7 +308,7 @@ namespace testProgram
             {
                 testReflection[coordsTile.x, coordsTile.y] = landCode_Land;
             }
-            WorldGen.GeographyGenerator.PrintIDMap(args, testReflection);
+            WorldGen.GeographyGenerator.PrintGeoMap(args, testReflection);
 
             //  Create a list of rotated coords
             List<Coords> rotatedCoords = Utility.Matrices.Transformation.RotateSection(coords, testingarr.GetLength(0), testingarr.GetLength(1), 3);
@@ -317,7 +317,7 @@ namespace testProgram
             {
                 testRotation[coordsTile.x, coordsTile.y] = landCode_Land;
             }
-            WorldGen.GeographyGenerator.PrintIDMap(args, testRotation);
+            WorldGen.GeographyGenerator.PrintGeoMap(args, testRotation);
 
 
 
@@ -383,7 +383,7 @@ namespace testProgram
             
             };
             int[,] testWorld = WorldGen.GeographyGenerator.GenerateGeography(args);
-            WorldGen.GeographyGenerator.PrintIDMap(args, testWorld);
+            WorldGen.GeographyGenerator.PrintGeoMap(args, testWorld);
             Console.WriteLine("");
             Console.WriteLine("");
 
@@ -800,7 +800,7 @@ namespace testProgram
             //  Generate map
             #region Generate Map
             int[,] testWorld = WorldGen.GeographyGenerator.GeographyGenComponents.GenerateLandmassNoise(args, 4);
-            //WorldGen.GeographyGenerator.GeographyGenComponents.PrintIDMap(args, testWorld);
+            //WorldGen.GeographyGenerator.GeographyGenComponents.PrintGeoMap(args, testWorld);
             Console.WriteLine("");
             #endregion
 
