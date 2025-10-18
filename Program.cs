@@ -16,6 +16,7 @@ namespace testProgram
             Console.ForegroundColor = ConsoleColor.White;
             #endregion
 
+            
 
             testWorldgen();
             //testWorldPacking();
@@ -229,8 +230,8 @@ namespace testProgram
 
             // Print the new packed MAP
             WorldGen.GeographyGenerator.PrintGeoMap(args, canvas);
-            int[,] climateMap = WorldGen.ClimateBiomeGenerator.TemperatureGenComponents.generateTemperatureMap(args, canvas);
-            WorldGen.ClimateBiomeGenerator.TemperatureGenComponents.printTemperatureMap(args, climateMap, canvas, true);
+            int[,] climateMap = WorldGen.BiomeGenerator.TemperatureGenComponents.generateTemperatureMap(args, canvas);
+            WorldGen.BiomeGenerator.TemperatureGenComponents.printTemperatureMap(args, climateMap, canvas, true);
 
 
 
@@ -389,9 +390,9 @@ namespace testProgram
 
 
             Console.WriteLine("Modified Array Printable");
-            int[,] temperatureMap = WorldGen.ClimateBiomeGenerator.TemperatureGenComponents.generateTemperatureMap(args, testWorld);
+            int[,] temperatureMap = WorldGen.BiomeGenerator.TemperatureGenComponents.generateTemperatureMap(args, testWorld);
 
-            WorldGen.ClimateBiomeGenerator.TemperatureGenComponents.printTemperatureMap(args, temperatureMap, testWorld, true);
+            WorldGen.BiomeGenerator.TemperatureGenComponents.printTemperatureMap(args, temperatureMap, testWorld, true);
 
 
             #region Bitmaps
