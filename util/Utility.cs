@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.Globalization;
 using System.Numerics;
 using System.Text;
@@ -206,7 +207,7 @@ namespace Utility
 
 
         //  This function converts a valid directory into a short directory String
-        public static string GetDirectoryString(string path)
+        public static string GetDirectoryShortened(string path)
         {
             // Check if filepath is already dynamic; if true, return path, if false, proceed
             try
@@ -2120,7 +2121,7 @@ namespace Utility
                 {
                     throw new ArgumentNullException(nameof(path), "The path cannot be null.");
                 }
-                Bitmap bitmap = new Bitmap(Utility.Files.GetDirectory(path));
+                Bitmap bitmap = new Bitmap(path);
                 return bitmap;
             }
 
@@ -2160,7 +2161,9 @@ namespace Utility
 
                 Console.WriteLine("Saving Image: ");
 
-                String filepath = Utility.Files.GetDirectory(path);
+                //String filepath = Utility.Files.GetDirectory(path);
+                String filepath = path;
+
                 Console.WriteLine(filepath);
 
                 try { image.Save(filepath, System.Drawing.Imaging.ImageFormat.Png); }
@@ -2279,7 +2282,74 @@ namespace Utility
 
         public class ImageManipulation
         {
-            
+            public static Bitmap CombineBitmapArray(Bitmap[,] bitmaps)
+            {
+                if (bitmaps == null)
+                    throw new ArgumentNullException(nameof(bitmaps));
+
+                int rows = bitmaps.GetLength(0);
+                int cols = bitmaps.GetLength(1);
+
+                if (rows == 0 || cols == 0)
+                    throw new ArgumentException("Bitmap array cannot be empty.");
+
+                // 1️⃣ Determine the maximum width and height among all bitmaps
+                int maxWidth = 0;
+                int maxHeight = 0;
+                for (int r = 0; r < rows; r++)
+                {
+                    for (int c = 0; c < cols; c++)
+                    {
+                        var bmp = bitmaps[r, c];
+                        if (bmp != null)
+                        {
+                            if (bmp.Width > maxWidth) maxWidth = bmp.Width;
+                            if (bmp.Height > maxHeight) maxHeight = bmp.Height;
+                        }
+                    }
+                }
+
+                if (maxWidth == 0 || maxHeight == 0)
+                    throw new ArgumentException("No valid bitmaps found in array.");
+
+                // 2️⃣ Create final output bitmap with transparency
+                int totalWidth = cols * maxWidth;
+                int totalHeight = rows * maxHeight;
+                Bitmap output = new Bitmap(totalWidth, totalHeight, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+
+                using (Graphics g = Graphics.FromImage(output))
+                {
+                    g.Clear(Color.Transparent);
+                    g.InterpolationMode = InterpolationMode.HighQualityBicubic;
+
+                    // 3️⃣ Draw each bitmap in its corresponding cell
+                    for (int r = 0; r < rows; r++)
+                    {
+                        for (int c = 0; c < cols; c++)
+                        {
+                            var bmp = bitmaps[r, c];
+                            int x = c * maxWidth;
+                            int y = r * maxHeight;
+
+                            if (bmp != null)
+                            {
+                                // Scale smaller bitmaps up to max size
+                                if (bmp.Width != maxWidth || bmp.Height != maxHeight)
+                                {
+                                    g.DrawImage(bmp, new Rectangle(x, y, maxWidth, maxHeight));
+                                }
+                                else
+                                {
+                                    g.DrawImageUnscaled(bmp, x, y);
+                                }
+                            }
+                            // else → null = transparent; do nothing
+                        }
+                    }
+                }
+
+                return output;
+            }
 
 
 
