@@ -1,3 +1,4 @@
+using System.Drawing;
 using Utility;
 
 namespace testProgram
@@ -32,102 +33,7 @@ namespace testProgram
         public class GeographyGenerator : WorldGen
         {
 
-            //  Given an array in ID Map form, print an ASCII representation of the map
-            public static void PrintGeoMap(string[] args, int[,] idMap)
-            {
-                #region Parameters 1
-                //  Loads the initial seed for randomization
-                int INITSEED = Convert.ToInt32(args[index_seed]);
-                Random random = new Random(INITSEED);
-
-                //  Loads the requested dimensions
-                string MAPSIZE = Convert.ToString(args[index_mapSize]);
-                int mapRows;
-                int mapCols;
-                switch (MAPSIZE)
-                {
-                    case "VERY_SMALL":
-                        mapRows = 128;
-                        mapCols = 256;
-                        break;
-                    case "SMALL":
-                        mapRows = 256;
-                        mapCols = 512;
-                        break;
-                    case "MEDIUM":
-                        mapRows = 512;
-                        mapCols = 1024;
-                        break;
-                    case "LARGE":
-                        mapRows = 1024;
-                        mapCols = 2048;
-                        break;
-                    case "VERY_LARGE":
-                        mapRows = 2048;
-                        mapCols = 4096;
-                        break;
-                    default:
-                        //  Defaults to Small
-                        mapRows = 128;
-                        mapCols = 256;
-                        break;
-                }
-                int mapsizeModifier = Convert.ToInt32((double)((mapRows + mapCols) / 2)); // 640 on a 256x1024 grid
-
-                //  Loads the parameters for land generation
-                string MAPTYPE = args[index_mapType];
-                #endregion
-
-
-                for (int i = 0; i < idMap.GetLength(0); i++)
-                {
-                    Utility.Print.Write(">|", "00A614", "002166");
-                    for (int j = 0; j < idMap.GetLength(1); j++)
-                    {
-                        if (idMap[i, j] == landCode_coastalLand)
-                        {
-                            Utility.Print.Write("~", "E3E38F", "00A614");
-                        }
-                        else if (idMap[i, j] == landCode_Land)
-                        {
-                            Utility.Print.Write("~", "00A614", "00A614");
-                        }
-                        else if (idMap[i, j] == landCode_hillLand)
-                        {
-                            Utility.Print.Write("m", "ADADAD", "00A614");
-                        }
-                        else if (idMap[i, j] == landCode_mountain)
-                        {
-                            Utility.Print.Write("M", "FFFFFF", "00A614");
-                        } // 0052FF
-                        else if (idMap[i, j] == landCode_coastalWater)
-                        {
-                            Utility.Print.Write("`", "87AFFF", "0052FF");
-                        }
-                        else if (idMap[i, j] == landCode_offcoastWater)
-                        {
-                            Utility.Print.Write(" ", "0034A3", "0034A3");
-                        }
-                        else if (idMap[i, j] == landCode_deepWater)
-                        {
-                            Utility.Print.Write(" ", "002166", "002166");
-                        }
-                        else if (idMap[i, j] == landCode_outOfBounds)
-                        {
-                            Utility.Print.Write("X", "FF0000", "002166");
-                        }
-                        else
-                        {
-                            Utility.Print.Write("X", "FF00C8", "000000");
-                        }
-
-                    }
-                    Utility.Print.Write("|<", "00A614", "002166");
-                    Console.WriteLine();
-                }
-
-                Console.WriteLine();
-            }
+           
 
 
 
@@ -211,7 +117,7 @@ namespace testProgram
                 {
                     Console.WriteLine("");
                     Console.WriteLine("[GENWORLD]   Generating ID Map post processing:");
-                    PrintGeoMap(args, IDMap);
+                    Landform_Generation.PrintLandformMap(args, IDMap);
                     Console.WriteLine("");
                 }
                 if (verbose)
@@ -224,6 +130,168 @@ namespace testProgram
             //  Generates individual components for landmasses
             public class Landform_Generation : GeographyGenerator
             {
+                //  Given an array in ID Map form, print an ASCII representation of the map
+                public static void PrintLandformMap(string[] args, int[,] idMap)
+                {
+                    #region Parameters 1
+                    //  Loads the initial seed for randomization
+                    int INITSEED = Convert.ToInt32(args[index_seed]);
+                    Random random = new Random(INITSEED);
+
+                    //  Loads the requested dimensions
+                    string MAPSIZE = Convert.ToString(args[index_mapSize]);
+                    int mapRows;
+                    int mapCols;
+                    switch (MAPSIZE)
+                    {
+                        case "VERY_SMALL":
+                            mapRows = 128;
+                            mapCols = 256;
+                            break;
+                        case "SMALL":
+                            mapRows = 256;
+                            mapCols = 512;
+                            break;
+                        case "MEDIUM":
+                            mapRows = 512;
+                            mapCols = 1024;
+                            break;
+                        case "LARGE":
+                            mapRows = 1024;
+                            mapCols = 2048;
+                            break;
+                        case "VERY_LARGE":
+                            mapRows = 2048;
+                            mapCols = 4096;
+                            break;
+                        default:
+                            //  Defaults to Small
+                            mapRows = 128;
+                            mapCols = 256;
+                            break;
+                    }
+                    int mapsizeModifier = Convert.ToInt32((double)((mapRows + mapCols) / 2)); // 640 on a 256x1024 grid
+
+                    //  Loads the parameters for land generation
+                    string MAPTYPE = args[index_mapType];
+                    #endregion
+
+
+                    for (int i = 0; i < idMap.GetLength(0); i++)
+                    {
+                        Utility.Print.Write(">|", "00A614", "002166");
+                        for (int j = 0; j < idMap.GetLength(1); j++)
+                        {
+                            if (idMap[i, j] == landCode_coastalLand)
+                            {
+                                Utility.Print.Write("~", "E3E38F", "00A614");
+                            }
+                            else if (idMap[i, j] == landCode_Land)
+                            {
+                                Utility.Print.Write("~", "00A614", "00A614");
+                            }
+                            else if (idMap[i, j] == landCode_hillLand)
+                            {
+                                Utility.Print.Write("m", "ADADAD", "00A614");
+                            }
+                            else if (idMap[i, j] == landCode_mountain)
+                            {
+                                Utility.Print.Write("M", "FFFFFF", "00A614");
+                            } // 0052FF
+                            else if (idMap[i, j] == landCode_coastalWater)
+                            {
+                                Utility.Print.Write("`", "87AFFF", "0052FF");
+                            }
+                            else if (idMap[i, j] == landCode_offcoastWater)
+                            {
+                                Utility.Print.Write(" ", "0034A3", "0034A3");
+                            }
+                            else if (idMap[i, j] == landCode_deepWater)
+                            {
+                                Utility.Print.Write(" ", "002166", "002166");
+                            }
+                            else if (idMap[i, j] == landCode_outOfBounds)
+                            {
+                                Utility.Print.Write("X", "FF0000", "002166");
+                            }
+                            else
+                            {
+                                Utility.Print.Write("X", "FF00C8", "000000");
+                            }
+
+                        }
+                        Utility.Print.Write("|<", "00A614", "002166");
+                        Console.WriteLine();
+                    }
+
+                    Console.WriteLine();
+                }
+
+                public static Bitmap createBitmapLandform(string[] args, int[,] landMap)
+                {
+                    Bitmap[,] landFormMap = new Bitmap[landMap.GetLength(0), landMap.GetLength(1)];
+                    string filepath = "";
+
+                    for (int i = 0; i < landMap.GetLength(0); i++)
+                    {
+                        for (int j = 0; j < landMap.GetLength(1); j++)
+                        {
+                            if (landMap[i, j] == landCode_coastalLand)
+                            {
+                                filepath = Utility.Files.GetDirectory("\\debug\\displayableMaps\\displayMapsAssets\\landForm\\tile\\land\\coastal.png");
+                                landFormMap[i, j] = Utility.Images.ImageFile.getBitmap(filepath);
+                            }
+                            else if (landMap[i, j] == landCode_Land)
+                            {
+                                filepath = Utility.Files.GetDirectory("\\debug\\displayableMaps\\displayMapsAssets\\landForm\\tile\\land\\land.png");
+                                landFormMap[i, j] = Utility.Images.ImageFile.getBitmap(filepath);
+                            }
+                            else if (landMap[i, j] == landCode_hillLand)
+                            {
+                                filepath = Utility.Files.GetDirectory("\\debug\\displayableMaps\\displayMapsAssets\\landForm\\tile\\land\\hills.png");
+                                landFormMap[i, j] = Utility.Images.ImageFile.getBitmap(filepath);
+                            }
+                            else if (landMap[i, j] == landCode_mountain)
+                            {
+                                filepath = Utility.Files.GetDirectory("\\debug\\displayableMaps\\displayMapsAssets\\landForm\\tile\\land\\mountain.png");
+                                landFormMap[i, j] = Utility.Images.ImageFile.getBitmap(filepath);
+                            }
+                            else if (landMap[i, j] == landCode_coastalWater)
+                            {
+                                filepath = Utility.Files.GetDirectory("\\debug\\displayableMaps\\displayMapsAssets\\landForm\\tile\\water\\deepwater.png");
+                                landFormMap[i, j] = Utility.Images.ImageFile.getBitmap(filepath);
+                            }
+                            else if (landMap[i, j] == landCode_offcoastWater)
+                            {
+                                filepath = Utility.Files.GetDirectory("\\debug\\displayableMaps\\displayMapsAssets\\landForm\\tile\\water\\deepwater.png");
+                                landFormMap[i, j] = Utility.Images.ImageFile.getBitmap(filepath);
+                            }
+                            else if (landMap[i, j] == landCode_deepWater)
+                            {
+                                filepath = Utility.Files.GetDirectory("\\debug\\displayableMaps\\displayMapsAssets\\landForm\\tile\\water\\deepwater.png");
+                                landFormMap[i, j] = Utility.Images.ImageFile.getBitmap(filepath);
+                            }
+                            else if (landMap[i, j] == landCode_outOfBounds)
+                            {
+                                filepath = Utility.Files.GetDirectory("\\debug\\displayableMaps\\displayMapsAssets\\landForm\\tile\\alt\\outOfBounds.png");
+                                landFormMap[i, j] = Utility.Images.ImageFile.getBitmap(filepath);
+                            }
+                            else
+                            {
+                                filepath = Utility.Files.GetDirectory("\\debug\\displayableMaps\\displayMapsAssets\\landForm\\tile\\alt\\errorUnknown.png");
+                                landFormMap[i, j] = Utility.Images.ImageFile.getBitmap(filepath);
+                            }
+                        }
+                    }
+
+
+                    Bitmap landFormImage = Utility.Images.ImageManipulation.CombineBitmapArray(landFormMap);
+
+                    return landFormImage;
+                }
+
+
+
                 #region Map Generator Components
 
 
@@ -479,129 +547,6 @@ namespace testProgram
                 }
 
 
-
-                public static int[,] deformEdges(string[] args, int[,] array, int craterCharge, int cycles, int low, int targetStart, int targetEnd, int hig, int rangeOfCrater, bool withinTarget = false)
-                {
-                    #region Parameters 1
-                    //  Loads the initial seed for randomization
-                    int INITSEED = Convert.ToInt32(args[index_seed]);
-                    Random random = new Random(INITSEED);
-
-
-                    //  Loads the requested dimensions
-                    string MAPSIZE = Convert.ToString(args[index_mapSize]);
-                    int mapRows;
-                    int mapCols;
-                    switch (MAPSIZE)
-                    {
-                        case "VERY_SMALL":
-                            mapRows = 128;
-                            mapCols = 256;
-                            break;
-                        case "SMALL":
-                            mapRows = 256;
-                            mapCols = 512;
-                            break;
-                        case "MEDIUM":
-                            mapRows = 512;
-                            mapCols = 1024;
-                            break;
-                        case "LARGE":
-                            mapRows = 1024;
-                            mapCols = 2048;
-                            break;
-                        case "VERY_LARGE":
-                            mapRows = 2048;
-                            mapCols = 4096;
-                            break;
-                        default:
-                            //  Defaults to Small
-                            mapRows = 128;
-                            mapCols = 256;
-                            break;
-                    }
-                    int mapsizeModifier = Convert.ToInt32((double)((mapRows + mapCols) / 2)); // 640 on a 256x1024 grid
-
-
-                    //  Loads the parameters for land generation
-                    string MAPTYPE = args[index_mapType];
-
-
-                    #endregion
-
-                    List<List<Coords>> edgesLoL = new List<List<Coords>>();
-                    int[,] passableArray = array;
-                    for (int cyclesCount = 0; cyclesCount < cycles; cyclesCount++)
-                    {
-                        edgesLoL = Utility.Matrices.Selection.SelectionSectionEdges(array, targetStart, targetEnd, 1);
-
-                        foreach (List<Coords> edgeList in edgesLoL)
-                        {
-                            //  For each cell at the edge of the chosen gap, either create a crater or a hill
-                            foreach (Coords coordinate in edgeList)
-                            {
-                                int chanceOfCrater = random.Next(0, 101);
-
-                                List<Coords> circularRegion = Utility.Matrices.Selection.SelectCircleRegion(array, coordinate, rangeOfCrater);
-
-                                //  If above the chance, create a crater
-                                if (chanceOfCrater > craterCharge)
-                                {
-
-                                    foreach (Coords coordinateCircle in circularRegion)
-                                    {
-                                        if (withinTarget)
-                                        {
-                                            if (array[coordinateCircle.x, coordinateCircle.y] >= targetStart && array[coordinateCircle.x, coordinateCircle.y] <= targetEnd)
-                                            {
-                                                passableArray[coordinateCircle.x, coordinateCircle.y] = low;
-                                            }
-                                        }
-                                        else
-                                        {
-                                            if (array[coordinateCircle.x, coordinateCircle.y] < targetStart || array[coordinateCircle.x, coordinateCircle.y] > targetEnd)
-                                            {
-                                                passableArray[coordinateCircle.x, coordinateCircle.y] = low;
-                                            }
-                                        }
-                                    }
-
-                                }
-                                //  Otherwise, raise a hill
-                                else
-                                {
-                                    foreach (Coords coordinateCircle in circularRegion)
-                                    {
-                                        if (withinTarget)
-                                        {
-                                            if (array[coordinateCircle.x, coordinateCircle.y] >= targetStart && array[coordinateCircle.x, coordinateCircle.y] <= targetEnd)
-                                            {
-                                                passableArray[coordinateCircle.x, coordinateCircle.y] = hig;
-                                            }
-
-                                        }
-                                        else
-                                        {
-                                            if (array[coordinateCircle.x, coordinateCircle.y] < targetStart || array[coordinateCircle.x, coordinateCircle.y] > targetEnd)
-                                            {
-                                                passableArray[coordinateCircle.x, coordinateCircle.y] = hig;
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-
-
-                        }
-
-
-                    }
-
-
-                    return passableArray;
-                }
-
-
                 //  Generate a simple array consisting of all ocean tiles
                 public static int[,] getOceanicArray(string[] args)
                 {
@@ -791,7 +736,7 @@ namespace testProgram
                     int errorLimit = 10;
                     int timesTried = 0;
 
-                    regenerateContinents:
+                regenerateContinents:
                     if (errorIncrementor >= errorLimit)
                     {
                         //  Reset everything
@@ -1206,6 +1151,12 @@ namespace testProgram
                     return PrimeArrayMap;
                 }
 
+
+
+
+
+
+
                 //  Given a land mass, convert it to be more natural
                 public static int[,] TurnLandMassIntoNatural(string[] args, int[,] worldMap)
                 {
@@ -1471,9 +1422,9 @@ namespace testProgram
 
                     bool printContinentCompo = true;
                     bool displayPlacements = true;
-                    bool displayShapePlacements = true;
 
-                    bool printIslands = false;
+
+                    bool printIslands = true;
                     #endregion
 
 
@@ -1489,9 +1440,8 @@ namespace testProgram
                     restartTheProcess:
                     if (verbose)
                     {
-                        Console.WriteLine("Generating Continents");
+                        Utility.Print.WriteLine("Generating Landform Maps", "8DB953");
                     }
-
 
                     List<List<Coords>> continentsList = new List<List<Coords>>();
                     List<List<Coords>> continentsListExtended = new List<List<Coords>>();
@@ -1507,7 +1457,7 @@ namespace testProgram
 
                         //  
                         int[,] generatedContinent = WorldGen.GeographyGenerator.Landform_Generation.GenerateLandmassNoise(args, sizeOfContinent);
-
+                        
 
 
                         //  Select it and collapse it to a list of coords
@@ -1526,18 +1476,29 @@ namespace testProgram
 
 
 
+                        if (printmaps)
+                        {
+                            GeographyGenerator.Landform_Generation.PrintLandformMap(args, worldMap);
+                        }
 
                         continentsList.Add(mapCoords);
                         continentsListExtended.Add(edgesCoords);
                     }
 
 
+                    
 
-                    int maximumReturns = 25;
-
+                    //  Prev 25
+                    int maximumReturns = 1;
                     //  To make the function operate quicker, we will sort the list from largest to smallest
                     continentsListExtended = Utility.Lists.SortBySubListSize(continentsListExtended, false);
 
+
+
+                    if (verbose)
+                    {
+                        Utility.Print.WriteLine("Placing continents...", "8DB953");
+                    }
                     List<Coords[]> placements = Utility.Matrices.Complex.Packing.FindValidPlacements(mapRows, mapCols, continentsListExtended, maximumReturns);
                     if (placements.Count < 1)
                     {
@@ -1610,7 +1571,7 @@ namespace testProgram
 
                         if (printIslands)
                         {
-                            WorldGen.GeographyGenerator.GeographyGenerator.Landform_Generation.PrintGeoMap(args, islandMap);
+                            WorldGen.GeographyGenerator.GeographyGenerator.Landform_Generation.PrintLandformMap(args, islandMap);
                         }
                     }
 
@@ -1681,7 +1642,9 @@ namespace testProgram
                     //  TODO: Naturalize the Continents
                     if (verbose)
                     {
-                        Console.WriteLine("Naturalizing land");
+
+                        Utility.Print.WriteLine("Naturalizing the Continents", "8DB953");
+
                     }
                     worldMap = TurnLandMassIntoNatural(args, worldMap);
 
