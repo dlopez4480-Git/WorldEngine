@@ -189,7 +189,7 @@ namespace Utility
         //  Creates a directory at the specified filepath
         public static void CreateDirectory(string path)
         {
-            string filepath = GetValidPath(path);
+            string filepath = path;
             try
             {
                 //  Test if Directory Exists
@@ -596,7 +596,12 @@ namespace Utility
 
                 return result;
             }
-
+            public static List<Coords> SelectCellsWithinRangeEdgeCollapsed(int[,] grid, int rangeMin, int rangeMax, int rangeEdge, bool innerSelect = true, bool horizontalWrapping = false, bool verticalWrapping = false)
+            {
+                List<List<Coords>> uncollpasedList = SelectCellsWithinRangeEdge(grid, rangeMin, rangeMax, rangeEdge, innerSelect, horizontalWrapping, verticalWrapping);
+                List<Coords> collapsedList = Utility.Lists.CollapseLists(uncollpasedList);
+                return collapsedList;
+            }
 
             // Enumerate tuple pairs
             private static IEnumerable<(int, int)> Neighbors(int[] dx, int[] dy)
@@ -1435,7 +1440,7 @@ namespace Utility
 
             public class BorderRandomizer
             {
-                public static List<List<Coords>> RandomizeBorders(int[,] grid, int rangeMin, int rangeMax, float amplitude, float frequency, float smoothness, int seed, bool horizontalWrapping = false, bool verticalWrapping = false)
+                public static List<List<Coords>> RandomizeBorders(int[,] grid, int rangeMin, int rangeMax, double amplitude, double frequency, double smoothness, int seed, bool horizontalWrapping = false, bool verticalWrapping = false)
                 {
                     var toRemove = new List<Coords>();
                     var toAdd = new List<Coords>();
@@ -1476,7 +1481,7 @@ namespace Utility
                         for (int i = 0; i < ordered.Count; i++)
                         {
                             var c = ordered[i];
-                            float noise = Noise.Perlin1D.GetValue(i, amplitude, frequency, smoothness, seed);
+                            double noise = Noise.Perlin1D.GetValue(i, amplitude, frequency, smoothness, seed);
                             int offset = (int)Math.Round(Math.Abs(noise));
                             if (offset == 0) continue;
 
@@ -1796,51 +1801,56 @@ namespace Utility
         public static class Perlin1D
         {
             /// <summary>
-            /// Generates smooth deterministic 1D noise.
+            /// Deterministic 1D gradient-like noise using doubles.
+            /// Returns a value in [-amplitude, +amplitude].
             /// </summary>
-            /// <param name="x">Input coordinate along the 1D line (e.g., border index)</param>
-            /// <param name="amplitude">Maximum magnitude of the noise output</param>
-            /// <param name="frequency">How frequently the noise fluctuates along the axis</param>
-            /// <param name="smoothness">Controls the smoothness of interpolation (typically 1–10)</param>
-            /// <param name="seed">Random seed for deterministic noise generation</param>
-            /// <returns>A float noise value between -amplitude and +amplitude</returns>
-            public static float GetValue(float x, float amplitude, float frequency, float smoothness, int seed)
+            /// <param name="x">Position along the 1D line (e.g., border index)</param>
+            /// <param name="amplitude">Maximum absolute output (units = grid cells)</param>
+            /// <param name="frequency">How rapidly the noise varies (higher -> more cycles per unit)</param>
+            /// <param name="smoothness">Controls effective smoothing; values >= 1.0. Higher = smoother (slower) changes.</param>
+            /// <param name="seed">Integer seed for deterministic results</param>
+            public static double GetValue(double x, double amplitude, double frequency, double smoothness, int seed)
             {
-                // Adjust by frequency and smoothness
-                x *= frequency / Math.Max(1f, smoothness);
+                if (smoothness <= 0.0) smoothness = 1.0; // guard
+                                                         // Map x into noise space: frequency controls oscillation; smoothness reduces effective frequency
+                double xp = x * (frequency / Math.Max(1.0, smoothness));
 
-                int x0 = (int)Math.Floor(x);
+                int x0 = (int)Math.Floor(xp);
                 int x1 = x0 + 1;
 
-                float t = x - x0;
+                double t = xp - x0;
+                // smoothstep: t -> 3t^2 - 2t^3 for smoother interpolation
+                double tSmooth = t * t * (3.0 - 2.0 * t);
 
-                // Smoothstep interpolation for natural transition
-                t = t * t * (3f - 2f * t);
+                double g0 = Gradient(x0, seed);
+                double g1 = Gradient(x1, seed);
 
-                // Generate pseudo-random gradients
-                float g0 = Gradient(x0, seed);
-                float g1 = Gradient(x1, seed);
+                double interpolated = Lerp(g0, g1, tSmooth);
 
-                // Interpolate between gradients
-                float noise = Lerp(g0, g1, t);
+                // Clamp for safety, then scale
+                if (interpolated < -1.0) interpolated = -1.0;
+                if (interpolated > 1.0) interpolated = 1.0;
 
-                // Scale to amplitude
-                return noise * amplitude;
+                return interpolated * amplitude;
             }
 
-            private static float Gradient(int i, int seed)
+            // Small deterministic hash -> gradient in [-1,1]
+            private static double Gradient(int i, int seed)
             {
                 unchecked
                 {
-                    // Simple hash function using the seed and position
-                    int hash = i;
-                    hash = (hash ^ seed) * 0x27d4eb2d;
-                    hash ^= (hash >> 15);
-                    return (hash & 0xFFFF) / 32768f * 2f - 1f; // Range [-1, 1]
+                    long h = i;
+                    h = (h << 13) ^ h;
+                    h = h + (seed * 0x9E3779B9); // incorporate seed
+                    long hash = (h * (h * h * 15731L + 789221L) + 1376312589L) & 0x7fffffffL;
+                    // map to [0,1]
+                    double normalized = (double)hash / (double)0x7fffffffL;
+                    // map to [-1,1]
+                    return normalized * 2.0 - 1.0;
                 }
             }
 
-            private static float Lerp(float a, float b, float t) => a + (b - a) * t;
+            private static double Lerp(double a, double b, double t) => a + (b - a) * t;
         }
         public static class Perlin2D
         {
