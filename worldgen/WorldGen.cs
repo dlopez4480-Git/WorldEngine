@@ -65,19 +65,9 @@ namespace testProgram
                 // 1048x2048
                 newMap = GeographyGenerator.LandGenerator.scaleLandmapToNewSizeWithoutInterp(args, deleteme, 3);
             }
-
-            int[,] contsAndIslesMap =  GeographyGenerator.LandGenerator.generateContinentsAndIslands(args);
-            string filepath = Utility.Files.GetValidPath("\\debug\\mapScaling\\mapBeforeScaled_ID" + INITSEED + ".png");
-            Bitmap ogmap = WorldGen.GeographyGenerator.LandGenerator.createLandBitmap(contsAndIslesMap);
-            Utility.Images.ImageFile.saveImage(ogmap, filepath);
+            int[,] testmap = GeographyGenerator.LandGenerator.GenerateLandMap(args);
 
 
-            double sizeMultiplier = 2.69148;
-            contsAndIslesMap = GeographyGenerator.LandGenerator.scaleLandmapToNewSizeWithoutInterp(args, contsAndIslesMap, sizeMultiplier);
-            contsAndIslesMap = GeographyGenerator.LandGenerator.naturalizeLandmap(args, contsAndIslesMap);
-            filepath = Utility.Files.GetValidPath("\\debug\\mapScaling\\mapNaturalizedID" + INITSEED + "_" + contsAndIslesMap.GetLength(0) + "x" + contsAndIslesMap.GetLength(1) + "_" + (sizeMultiplier + 1) + ".png");
-            Bitmap newmap = WorldGen.GeographyGenerator.LandGenerator.createLandBitmap(contsAndIslesMap);
-            Utility.Images.ImageFile.saveImage(newmap, filepath);
 
         }
     }
