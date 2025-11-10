@@ -36,6 +36,37 @@ namespace testProgram
 
         #endregion
 
+        public static void testGenerationEarthlike(string[] args)
+        {
+            #region Parameters for Landform Generation
+            //  Loads the initial seed for randomization
+            int INITSEED = Convert.ToInt32(args[index_seed]);
+            Random random = new Random(INITSEED);
+
+            #endregion
+
+            bool debug_printMap = true;
+
+
+            //  Load custom map
+            Bitmap LandMapBitMap = Utility.Images.ImageFile.getBitmap(Utility.Files.GetValidPath("\\debug\\geogeneration\\landgen\\customload\\customMap.png"));
+            int[,] LandMap = GeographyGenerator.LandGenerator.createLandMapFromBitmap(LandMapBitMap);
+            LandMap = GeographyGenerator.LandGenerator.naturalizeLandmap(args, LandMap);
+
+            if (debug_printMap)
+            {
+
+                string filepath = Utility.Files.GetValidPath("\\debug\\geogeneration\\landgen\\mapseed.png");
+                Bitmap image = WorldGen.GeographyGenerator.LandGenerator.createLandBitmap(LandMap);
+                Utility.Images.ImageFile.saveImage(image, filepath);
+            }
+
+
+
+            int[,] TemperatureMap = GeographyGenerator.TemperatureGenerator.GenerateTemperatureMap(args, LandMap);
+
+        }
+
         public static void testGenerationWorld(string[] args)
         {
             #region Parameters for Landform Generation
@@ -44,30 +75,11 @@ namespace testProgram
             Random random = new Random(INITSEED);
 
             #endregion
-            bool testScale = false;
+            
 
-            if (testScale)
-            {
-                int[,] deleteme = GeographyGenerator.LandGenerator.generateLandMassSmall(args, 4);
-                int[,] newMap = deleteme;
-
-                // 
-                newMap = GeographyGenerator.LandGenerator.scaleLandmapToNewSizeWithoutInterp(args, deleteme, 2);
-
-
-
-                //  Mars Size
-                newMap = GeographyGenerator.LandGenerator.scaleLandmapToNewSizeWithoutInterp(args, deleteme, 1.78);
-                //  Venus Sized
-                newMap = GeographyGenerator.LandGenerator.scaleLandmapToNewSizeWithoutInterp(args, deleteme, 2.61);
-                //  Earth Sized
-                newMap = GeographyGenerator.LandGenerator.scaleLandmapToNewSizeWithoutInterp(args, deleteme, 2.69148);
-                // 1048x2048
-                newMap = GeographyGenerator.LandGenerator.scaleLandmapToNewSizeWithoutInterp(args, deleteme, 3);
-            }
-            int[,] testmap = GeographyGenerator.LandGenerator.GenerateLandMap(args);
-
-
+            
+            int[,] LandMap = GeographyGenerator.LandGenerator.createLandMap(args);
+            int[,] TemperatureMap = GeographyGenerator.TemperatureGenerator.GenerateTemperatureMap(args, LandMap);
 
         }
     }
