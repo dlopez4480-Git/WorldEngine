@@ -12,9 +12,13 @@ The number which seeds the randomization of the world. Using the same seed gives
 This string changes the sizing of the final world.
 
 VERYSMALL:
+
 SMALL:
+
 MEDIUM:
+
 LARGE:
+
 VERYLARGE:
 
 [2] NULL
