@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Diagnostics;
 using System.Drawing;
 using System.Globalization;
 using System.Numerics;
@@ -404,7 +405,9 @@ namespace Utility
         {
 
             #region Select and return all cells within ranges
-
+            /// <summary>
+            /// Selects and returns a list of all sections of orthogonally connected cells within a range
+            /// </summary>
             public static List<List<Coords>> SelectCellsWithinRange(int[,] grid, int rangeMin, int rangeMax, bool horizontalWrapping = false, bool verticalWrapping = false)
             {
                 int rows = grid.GetLength(0);
@@ -470,6 +473,10 @@ namespace Utility
 
                 return islands;
             }
+
+            /// <summary>
+            /// Selects and returns a list of all sections of orthogonally connected cells within a range
+            /// </summary>
             public static List<Coords> SelectCellsWithinRangeCollapsed(int[,] grid, int rangeMin, int rangeMax, bool horizontalWrapping = false, bool verticalWrapping = false)
             {
                 List<List<Coords>> uncollpasedList = SelectCellsWithinRange(grid, rangeMin, rangeMax, horizontalWrapping, verticalWrapping);
@@ -478,8 +485,9 @@ namespace Utility
             }
 
 
-
-            //  Find the neighboring edges of orthogonally connected sections within a 2D Matrix within a given range
+            /// <summary>
+            /// Selects and returns a list of all edges of sections of orthogonally connected cells within a range
+            /// </summary>
             public static List<List<Coords>> SelectCellsWithinRangeEdge(int[,] grid, int rangeMin, int rangeMax, int rangeEdge, bool innerSelect = true, bool horizontalWrapping = false, bool verticalWrapping = false)
             {
                 int rows = grid.GetLength(0);
@@ -596,12 +604,17 @@ namespace Utility
 
                 return result;
             }
+            /// <summary>
+            /// Selects and returns a list of all edges of sections of orthogonally connected cells within a range
+            /// </summary>
             public static List<Coords> SelectCellsWithinRangeEdgeCollapsed(int[,] grid, int rangeMin, int rangeMax, int rangeEdge, bool innerSelect = true, bool horizontalWrapping = false, bool verticalWrapping = false)
             {
                 List<List<Coords>> uncollpasedList = SelectCellsWithinRangeEdge(grid, rangeMin, rangeMax, rangeEdge, innerSelect, horizontalWrapping, verticalWrapping);
                 List<Coords> collapsedList = Utility.Lists.CollapseLists(uncollpasedList);
                 return collapsedList;
             }
+
+
 
             // Enumerate tuple pairs
             private static IEnumerable<(int, int)> Neighbors(int[] dx, int[] dy)
@@ -1249,16 +1262,18 @@ namespace Utility
 
 
                 //  This algorithm takes a LoL of Coords, representing a section, and returns all possible starting locations
-                public static List<Coords[]> FindValidPlacements(int rows, int cols, List<List<Coords>> shapes, int maximumPlacements = -1)
+                public static List<Coords[]> FindValidPlacements(int rows, int cols, List<List<Coords>> shapes, int maximumPlacements = -1, bool debug_displayRuntime = true)
                 {
+                    var stopwatch = new System.Diagnostics.Stopwatch();
+                    if (debug_displayRuntime) stopwatch.Start();
+
                     var placements = new List<Coords[]>();
 
-                    // --- Basic input guards ---
+                    // --- Basic input guards (unchanged) ---
                     if (rows <= 0 || cols <= 0) return placements;
                     if (shapes == null || shapes.Count == 0) return placements;
-                    if (maximumPlacements == 0) return placements; // explicit: user asked for 0 results
+                    if (maximumPlacements == 0) return placements;
 
-                    // Quick area check: if total cells > grid capacity, impossible
                     int totalCells = 0;
                     foreach (var shape in shapes)
                     {
@@ -1267,75 +1282,101 @@ namespace Utility
                     }
                     if (totalCells > rows * cols) return placements;
 
-                    // Work array that will hold the anchor (placement) for each shape index
+                    // Work array to hold anchors
                     Coords[] currentPlacement = new Coords[shapes.Count];
 
-                    // Occupied set to detect overlap quickly
+                    // Track occupied cells
                     var occupied = new HashSet<(int, int)>();
 
-                    // --- Precompute shape sizes for pruning ---
+                    // --- MODIFIED: Memoization now uses fast state key ---
+                    // If grid ≤ 64 cells, use ulong bitmask. Otherwise, fallback to HashCode struct.
+                    bool useBitmask = (rows * cols) <= 64;
+                    var memoMask = new HashSet<(int, ulong)>(); // For small boards
+                    var memoBig = new HashSet<(int shapeIndex, int hash)>(); // For larger boards
+
+                    // Bitmask tracking (only valid if useBitmask == true)
+                    ulong occupiedMask = 0UL;
+
+                    // --- ADDED: helper methods to set/unset occupancy bits ---
+                    void SetBit(int r, int c)
+                    {
+                        int pos = r * cols + c;
+                        occupiedMask |= (1UL << pos);
+                    }
+                    void ClearBit(int r, int c)
+                    {
+                        int pos = r * cols + c;
+                        occupiedMask &= ~(1UL << pos);
+                    }
+
+                    // --- Precompute shape sizes ---
                     int[] shapeCellCounts = shapes.Select(s => s.Count).ToArray();
 
-                    //  Phase 2b: PRECOMPUTE ALL VALID TRANSLATIONS FOR EACH SHAPE
+                    // --- Precompute all valid translated placements (same as before) ---
                     var validPlacementsPerShape = new List<List<(Coords anchor, List<Coords> cells)>>();
-
                     foreach (var shape in shapes)
                     {
                         var validList = new List<(Coords, List<Coords>)>();
-
                         for (int r = 0; r < rows; r++)
                         {
                             for (int c = 0; c < cols; c++)
                             {
-                                var translated = Utility.Matrices.Geometry.TranslateSection(shape, rows, cols, new Coords(r, c), centerMassed: true, horizontalWrapping: false, verticalWrapping: false);
-
-                                // Skip placements that fell out of bounds
-                                if (translated.Count != shape.Count) continue;
-
-                                validList.Add((new Coords(r, c), translated));
+                                var translated = Utility.Matrices.Geometry.TranslateSection(shape, rows, cols, new Coords(r, c), centerMassed: true);
+                                if (translated.Count == shape.Count)
+                                    validList.Add((new Coords(r, c), translated));
                             }
                         }
-
                         validPlacementsPerShape.Add(validList);
                     }
 
-                    //  Phase 2b (optional enhancement): order shapes by fewest valid placements first (heuristic)
-                    // This helps prune branches faster by placing constrained shapes first.
-                    // NOTE: We must reorder both 'shapes' and 'validPlacementsPerShape' consistently.
+                    // --- Reorder shapes by fewest valid placements (unchanged logic) ---
                     var ordered = validPlacementsPerShape
                         .Select((placements, index) => new { index, placements, count = placements.Count, size = shapes[index].Count })
                         .OrderBy(x => x.count)
-                        .ThenByDescending(x => x.size) // secondary: place larger shapes first if equal
+                        .ThenByDescending(x => x.size)
                         .ToList();
 
                     var orderedShapes = ordered.Select(x => shapes[x.index]).ToList();
                     var orderedValidPlacements = ordered.Select(x => x.placements).ToList();
                     var orderedCellCounts = ordered.Select(x => shapeCellCounts[x.index]).ToArray();
 
-                    // Recursive function
+                    // --- Recursive function with modified memoization ---
                     void PlaceShape(int shapeIndex)
                     {
                         if (maximumPlacements > 0 && placements.Count >= maximumPlacements) return;
 
-                        // Phase 2a SHORT-CIRCUIT CHECK (kept from before)
-                        int occupiedCount = occupied.Count;
-                        int remainingArea = (rows * cols) - occupiedCount;
+                        // Compute current state key
+                        if (useBitmask)
+                        {
+                            var stateKey = (shapeIndex, occupiedMask);
+                            if (memoMask.Contains(stateKey)) return; // MODIFIED
+                            memoMask.Add(stateKey); // MODIFIED
+                        }
+                        else
+                        {
+                            // Fallback: Use a hashed integer of occupied cells
+                            var hc = new HashCode();
+                            foreach (var (r, c) in occupied) hc.Add((r, c));
+                            var stateKey = (shapeIndex, hc.ToHashCode());
+                            if (memoBig.Contains(stateKey)) return; // MODIFIED
+                            memoBig.Add(stateKey); // MODIFIED
+                        }
 
-                        int remainingCellsNeeded = 0;
-                        for (int i = shapeIndex; i < orderedShapes.Count; i++)
-                            remainingCellsNeeded += orderedCellCounts[i];
-
-                        if (remainingArea < remainingCellsNeeded)
-                            return; // impossible to fit remaining shapes
-
-                        // Base case: all shapes placed
+                        // Base case
                         if (shapeIndex == orderedShapes.Count)
                         {
                             placements.Add((Coords[])currentPlacement.Clone());
                             return;
                         }
 
-                        // Phase 2b: iterate only through precomputed valid placements
+                        // Short circuit check
+                        int remainingArea = (rows * cols) - occupied.Count;
+                        int remainingCellsNeeded = 0;
+                        for (int i = shapeIndex; i < orderedShapes.Count; i++)
+                            remainingCellsNeeded += orderedCellCounts[i];
+                        if (remainingArea < remainingCellsNeeded) return;
+
+                        // Try each precomputed valid placement for this shape
                         foreach (var (anchor, translated) in orderedValidPlacements[shapeIndex])
                         {
                             bool fits = true;
@@ -1349,25 +1390,44 @@ namespace Utility
                             }
                             if (!fits) continue;
 
+                            // Place this shape
                             foreach (var cell in translated)
+                            {
                                 occupied.Add((cell.x, cell.y));
+                                if (useBitmask) SetBit(cell.x, cell.y); // MODIFIED
+                            }
 
                             currentPlacement[shapeIndex] = anchor;
 
                             PlaceShape(shapeIndex + 1);
 
+                            // Remove the shape (backtrack)
                             foreach (var cell in translated)
+                            {
                                 occupied.Remove((cell.x, cell.y));
+                                if (useBitmask) ClearBit(cell.x, cell.y); // MODIFIED
+                            }
 
                             if (maximumPlacements > 0 && placements.Count >= maximumPlacements) return;
                         }
                     }
 
-                    // Start recursion
                     PlaceShape(0);
+
+                    if (debug_displayRuntime)
+                    {
+                        stopwatch.Stop();
+                        Console.WriteLine($"Runtime: {(stopwatch.ElapsedMilliseconds)*(0.001)} s");
+                    }
 
                     return placements;
                 }
+
+
+
+
+
+
 
 
                 //  Given an already loaded array, find a list of valid placements for one shape
@@ -1440,30 +1500,25 @@ namespace Utility
 
             public class BorderRandomizer
             {
-                public static List<List<Coords>> RandomizeBorders(int[,] grid, int rangeMin, int rangeMax, double amplitude, double frequency, double smoothness, int seed, bool horizontalWrapping = false, bool verticalWrapping = false)
+                public static List<List<Coords>> RandomizeBorders( int[,] grid, int rangeMin, int rangeMax, double amplitude,double frequency, double smoothness, int seed, int octaves = 8, double persistence = 0.5, bool horizontalWrapping = false, bool verticalWrapping = false)
                 {
                     var toRemove = new List<Coords>();
                     var toAdd = new List<Coords>();
 
-                    // Step 1: Get border cells
-                    var borderRegions = Matrices.Selection.SelectCellsWithinRangeEdge(grid, rangeMin, rangeMax, 1, innerSelect: true, horizontalWrapping, verticalWrapping);
-
-                    bool InRange(int val) => val >= rangeMin && val <= rangeMax;
+                    var borderRegions = Matrices.Selection.SelectCellsWithinRangeEdge(grid, rangeMin, rangeMax, 1,horizontalWrapping, verticalWrapping, true);
 
                     int rows = grid.GetLength(0);
                     int cols = grid.GetLength(1);
 
+                    bool InRange(int v) => v >= rangeMin && v <= rangeMax;
+
                     (int, int)? Wrap(int x, int y)
                     {
-                        if (x < 0)
-                            x = verticalWrapping ? rows - 1 : -1;
-                        else if (x >= rows)
-                            x = verticalWrapping ? 0 : -1;
+                        if (x < 0) x = verticalWrapping ? rows - 1 : -1;
+                        else if (x >= rows) x = verticalWrapping ? 0 : -1;
 
-                        if (y < 0)
-                            y = horizontalWrapping ? cols - 1 : -1;
-                        else if (y >= cols)
-                            y = horizontalWrapping ? 0 : -1;
+                        if (y < 0) y = horizontalWrapping ? cols - 1 : -1;
+                        else if (y >= cols) y = horizontalWrapping ? 0 : -1;
 
                         if (x == -1 || y == -1) return null;
                         return (x, y);
@@ -1472,41 +1527,46 @@ namespace Utility
                     int[] dxAll = { -1, -1, -1, 0, 0, 1, 1, 1 };
                     int[] dyAll = { -1, 0, 1, -1, 1, -1, 0, 1 };
 
-                    // Step 2-5: Process each border region
                     foreach (var region in borderRegions)
                     {
-                        // Step 2: Create a stable order (optional simple heuristic)
                         var ordered = OrderBorder(region);
 
                         for (int i = 0; i < ordered.Count; i++)
                         {
-                            var c = ordered[i];
-                            double noise = Noise.Perlin1D.GetValue(i, amplitude, frequency, smoothness, seed);
-                            int offset = (int)Math.Round(Math.Abs(noise));
-                            if (offset == 0) continue;
+                            Coords c = ordered[i];
 
-                            // Compute outward direction
+                            double noise = Noise.Perlin1D.GetValue(
+                                x: i,
+                                amplitude: amplitude,
+                                frequency: frequency,
+                                smoothness: smoothness,
+                                seed: seed,
+                                octaves: octaves,
+                                persistence: persistence);
+
+                            int steps = (int)Math.Round(noise);
+                            if (steps == 0) continue;
+
                             var outward = EstimateOutwardNormal(c, grid, InRange, Wrap, dxAll, dyAll);
+                            if (outward.x == 0 && outward.y == 0) continue;
 
-                            // Apply offset steps
-                            for (int step = 1; step <= offset; step++)
+                            for (int s = 1; s <= Math.Abs(steps); s++)
                             {
-                                int nx = c.x + (int)Math.Round(outward.x * step);
-                                int ny = c.y + (int)Math.Round(outward.y * step);
-                                var n = Wrap(nx, ny);
-                                if (n == null) continue;
-                                nx = n.Value.Item1;
-                                ny = n.Value.Item2;
+                                int nx = c.x + (int)Math.Round(outward.x * s * Math.Sign(steps));
+                                int ny = c.y + (int)Math.Round(outward.y * s * Math.Sign(steps));
 
-                                if (noise > 0)
+                                var wrapped = Wrap(nx, ny);
+                                if (wrapped == null) continue;
+                                nx = wrapped.Value.Item1;
+                                ny = wrapped.Value.Item2;
+
+                                if (steps > 0)
                                 {
-                                    // Expansion
                                     if (!InRange(grid[nx, ny]))
                                         toAdd.Add(new Coords(nx, ny));
                                 }
                                 else
                                 {
-                                    // Contraction
                                     if (InRange(grid[nx, ny]))
                                         toRemove.Add(new Coords(nx, ny));
                                 }
@@ -1518,30 +1578,32 @@ namespace Utility
                 }
 
                 private static List<Coords> OrderBorder(List<Coords> border)
-                {
-                    // Simple heuristic: sort roughly by x+y (not perfect but stable)
-                    return border.OrderBy(c => c.x + c.y * 0.001).ToList();
-                }
+                    => border.OrderBy(c => c.x + c.y * 0.001).ToList();
 
-                private static (float x, float y) EstimateOutwardNormal(Coords c, int[,] grid, Func<int, bool> InRange, Func<int, int, (int, int)?> Wrap, int[] dxAll, int[] dyAll)
+                private static (double x, double y) EstimateOutwardNormal(
+                    Coords c,
+                    int[,] grid,
+                    Func<int, bool> InRange,
+                    Func<int, int, (int, int)?> Wrap,
+                    int[] dxAll,
+                    int[] dyAll)
                 {
-                    float nx = 0, ny = 0;
+                    double nx = 0, ny = 0;
                     for (int i = 0; i < dxAll.Length; i++)
                     {
                         var n = Wrap(c.x + dxAll[i], c.y + dyAll[i]);
                         if (n == null) continue;
-                        int nxCell = n.Value.Item1;
-                        int nyCell = n.Value.Item2;
 
-                        if (!InRange(grid[nxCell, nyCell]))
+                        int vx = n.Value.Item1;
+                        int vy = n.Value.Item2;
+                        if (!InRange(grid[vx, vy]))
                         {
                             nx += dxAll[i];
                             ny += dyAll[i];
                         }
                     }
-                    float length = (float)Math.Sqrt(nx * nx + ny * ny);
-                    if (length == 0) return (0, 0);
-                    return (nx / length, ny / length);
+                    double len = Math.Sqrt(nx * nx + ny * ny);
+                    return (len == 0) ? (0, 0) : (nx / len, ny / len);
                 }
             }
 
@@ -1801,60 +1863,69 @@ namespace Utility
         public static class Perlin1D
         {
             /// <summary>
-            /// Deterministic 1D gradient-like noise using doubles.
-            /// Returns a value in [-amplitude, +amplitude].
+            /// Multi-octave 1D fractal noise. Result is in range [-amplitude, +amplitude].
+            /// <param name="x">Position along border or edge</param>
+            /// <param name="amplitude"> Base amplitude (i.e up to x tiles expansion or contraction)</param>
+            /// <param name="frequency">Base frequency of the noise (how often variation occurs)</param>
+            /// <param name="smoothness">Scales how quickly it changes (divides frequency. larger = smoother)</param>
+            /// <param name="seed">Makes the noise repeatable/deterministic</param>
+            /// <param name="octaves">Number of times noise is layerd</param>
+            /// <param name="persistence">Multiplier that reduces each octave's amplitude (i.e each octave the noise gets smaller)</param>
             /// </summary>
-            /// <param name="x">Position along the 1D line (e.g., border index)</param>
-            /// <param name="amplitude">Maximum absolute output (units = grid cells)</param>
-            /// <param name="frequency">How rapidly the noise varies (higher -> more cycles per unit)</param>
-            /// <param name="smoothness">Controls effective smoothing; values >= 1.0. Higher = smoother (slower) changes.</param>
-            /// <param name="seed">Integer seed for deterministic results</param>
-            public static double GetValue(double x, double amplitude, double frequency, double smoothness, int seed)
+            public static double GetValue(double x, double amplitude, double frequency, double smoothness, int seed, int octaves = 4, double persistence = 0.5)
             {
-                if (smoothness <= 0.0) smoothness = 1.0; // guard
-                                                         // Map x into noise space: frequency controls oscillation; smoothness reduces effective frequency
-                double xp = x * (frequency / Math.Max(1.0, smoothness));
+                if (smoothness <= 0) smoothness = 1.0;
+                if (octaves < 1) octaves = 1;
 
-                int x0 = (int)Math.Floor(xp);
+                double total = 0.0;
+                double maxPossible = 0.0;
+                double currentAmplitude = 1.0;
+                double currentFrequency = frequency / smoothness;
+
+                for (int o = 0; o < octaves; o++)
+                {
+                    double sample = SingleOctave(x * currentFrequency, seed + o * 7919);
+                    total += sample * currentAmplitude;
+                    maxPossible += currentAmplitude;
+
+                    currentAmplitude *= persistence;
+                    currentFrequency *= 2.0;
+                }
+
+                return (maxPossible > 0 ? total / maxPossible : 0) * amplitude;
+            }
+
+            private static double SingleOctave(double x, int seed)
+            {
+                int x0 = (int)Math.Floor(x);
                 int x1 = x0 + 1;
-
-                double t = xp - x0;
-                // smoothstep: t -> 3t^2 - 2t^3 for smoother interpolation
-                double tSmooth = t * t * (3.0 - 2.0 * t);
+                double t = x - x0;
 
                 double g0 = Gradient(x0, seed);
                 double g1 = Gradient(x1, seed);
 
-                double interpolated = Lerp(g0, g1, tSmooth);
-
-                // Clamp for safety, then scale
-                if (interpolated < -1.0) interpolated = -1.0;
-                if (interpolated > 1.0) interpolated = 1.0;
-
-                return interpolated * amplitude;
+                double tSmooth = t * t * (3.0 - 2.0 * t);
+                return g0 + (g1 - g0) * tSmooth;
             }
 
-            // Small deterministic hash -> gradient in [-1,1]
             private static double Gradient(int i, int seed)
             {
                 unchecked
                 {
                     long h = i;
                     h = (h << 13) ^ h;
-                    h = h + (seed * 0x9E3779B9); // incorporate seed
-                    long hash = (h * (h * h * 15731L + 789221L) + 1376312589L) & 0x7fffffffL;
-                    // map to [0,1]
-                    double normalized = (double)hash / (double)0x7fffffffL;
-                    // map to [-1,1]
+                    h += seed * 0x9E3779B97F4A7C1;
+                    long hash = (h * (h * h * 15731L + 789221L) + 1376312589L) & 0x7FFFFFFF;
+                    double normalized = (double)hash / 0x7FFFFFFF;
                     return normalized * 2.0 - 1.0;
                 }
             }
-
-            private static double Lerp(double a, double b, double t) => a + (b - a) * t;
         }
         public static class Perlin2D
         {
-
+            /// <summary>
+            /// Generates a random map of Perlin 2D Noise
+            /// </summary>
             public static double[,] GeneratePerlinNoise(int rows, int cols, double frequency, int seed)
             {
                 double[,] noise = new double[rows, cols];
@@ -1874,6 +1945,10 @@ namespace Utility
 
                 return noise;
             }
+
+            /// <summary>
+            /// Generates a random map of Perlin 2D Noise, in integer form.
+            /// </summary>
             public static int[,] GeneratePerlinInt(int rows, int cols, double frequency, int minRange, int maxRange, int seed)
             {
                 double[,] perlinArrayDouble = GeneratePerlinNoise(rows, cols, frequency, seed);
