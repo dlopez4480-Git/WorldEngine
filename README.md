@@ -23,3 +23,5 @@ VERYLARGE:
 [5] MAPTYPE
 This string will change what type of world is generated
 
+CONTINENTS&ISLANDS: Generates a map similar to Earth, with a scattering of large and medium sized continents with some smaller islands in a large world ocean
+DEBUG: Uses a scale of the Earth, as a map seed. I've been using this to avoid the tedious process of actual land generation.
