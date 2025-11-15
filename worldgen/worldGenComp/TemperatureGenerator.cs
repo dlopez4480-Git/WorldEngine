@@ -8,9 +8,31 @@ namespace testProgram
     {
         #region Temperature Codes
         //  Note; these are normalized to farenehit, the morally correct temperature system. 
-        public static readonly int temperatureCode_polarUltimate = -21;
-        public static readonly int temperatureCode_polar5 = -13;
-        public static readonly int temperatureCode_polar4 = 5;
+        public static readonly int temperatureCode_polarUltimaHigh = -21;
+
+        public static readonly int temperatureCode_polarDeltaLow = -13;
+        public static readonly int temperatureCode_polarBetaLow = 5;
+        public static readonly int temperatureCode_polarAlphaLow = 14;
+
+        public static readonly int temperatureCode_subpolarBetaLow = 23;
+
+        public static readonly int temperatureCode_subpolarAlphaLow = 32;
+
+        public static readonly int temperatureCode_TemperateColdLow = 41;
+        public static readonly int temperatureCode_TemperateLow = 50;
+        public static readonly int temperatureCode_TemperateWarmLow = 59;
+        
+
+        public static readonly int temperatureCode_subtropicalLow = 68;
+        public static readonly int temperatureCode_tropicalBetaLow = 86;
+
+        public static readonly int temperatureCode_tropicalAlphaLow = 95;
+        public static readonly int temperatureCode_tropicalScorching = 104;
+        
+
+
+
+
         #endregion
 
         public partial class GeographyGenerator
@@ -27,66 +49,105 @@ namespace testProgram
                         {
                             if (landMap[i, j] >= landCode_lowLand)
                             {
-                                //  Polar Zone
-                                if (temperatureMap[i, j] < temperatureCode_polarUltimate)
+                                /// Super-Frozen Zone
+                                //  Frozen
+                                if (temperatureMap[i, j] < temperatureCode_polarUltimaHigh)
                                 {
                                     temperatureBitmapString[i, j] = "27414f";
                                 }
-                                else if (temperatureMap[i, j] >= temperatureCode_polarUltimate && temperatureMap[i, j] < temperatureCode_polar5)
+
+
+
+                                /// Polar Zone
+                                //  Polar Delta
+                                else if (temperatureMap[i, j] >= temperatureCode_polarUltimaHigh && temperatureMap[i, j] < temperatureCode_polarDeltaLow)
                                 {
                                     temperatureBitmapString[i, j] = "45748c";
                                 }
-                                else if (temperatureMap[i, j] >= temperatureCode_polar5 && temperatureMap[i, j] < temperatureCode_polar4)
+                                //  Polar Gamma
+                                else if (temperatureMap[i, j] >= temperatureCode_polarDeltaLow && temperatureMap[i, j] < temperatureCode_polarBetaLow)
                                 {
                                     temperatureBitmapString[i, j] = "548EAB";
                                 }
-                                else if (temperatureMap[i, j] >= temperatureCode_polar4 && temperatureMap[i, j] < 14)
+                                //  Polar Beta
+                                else if (temperatureMap[i, j] >= temperatureCode_polarBetaLow && temperatureMap[i, j] < temperatureCode_polarAlphaLow)
                                 {
                                     temperatureBitmapString[i, j] = "8ac8e6";
                                 }
-                                else if (temperatureMap[i, j] >= 14 && temperatureMap[i, j] < 23)
+                                //  Polar Alpha
+                                else if (temperatureMap[i, j] >= temperatureCode_polarAlphaLow && temperatureMap[i, j] < temperatureCode_subpolarBetaLow)
                                 {
                                     temperatureBitmapString[i, j] = "00f0ff";
                                 }
-                                else if (temperatureMap[i, j] >= 23 && temperatureMap[i, j] < 32)
+
+
+
+
+
+
+                                /// Sub-Polar Zone
+                                //  Sub-Polar Beta
+                                else if (temperatureMap[i, j] >= temperatureCode_subpolarBetaLow && temperatureMap[i, j] < temperatureCode_subpolarAlphaLow)
                                 {
                                     temperatureBitmapString[i, j] = "#8af091";
                                 }
-
-                                else if (temperatureMap[i, j] >= 23 && temperatureMap[i, j] < 32)
-                                {
-                                    temperatureBitmapString[i, j] = "8af091";
-                                }
-                                else if (temperatureMap[i, j] >= 32 && temperatureMap[i, j] < 41)
+                                //  Sub-Polar Alpha
+                                else if (temperatureMap[i, j] >= temperatureCode_subpolarAlphaLow && temperatureMap[i, j] < temperatureCode_TemperateColdLow)
                                 {
                                     temperatureBitmapString[i, j] = "eaff91";
                                 }
-                                else if (temperatureMap[i, j] >= 41 && temperatureMap[i, j] < 50)
+
+
+
+
+                                /// Temperate Zone
+                                //  Cold Temperate
+                                else if (temperatureMap[i, j] >= temperatureCode_TemperateColdLow && temperatureMap[i, j] < temperatureCode_TemperateLow)
                                 {
                                     temperatureBitmapString[i, j] = "ffff00";
                                 }
-                                else if (temperatureMap[i, j] >= 50 && temperatureMap[i, j] < 59)
+                                //  Temperate
+                                else if (temperatureMap[i, j] >= temperatureCode_TemperateLow && temperatureMap[i, j] < temperatureCode_TemperateWarmLow)
                                 {
                                     temperatureBitmapString[i, j] = "b69105";
                                 }
-                                else if (temperatureMap[i, j] >= 59 && temperatureMap[i, j] < 68)
+                                //  Warm Temperate 
+                                else if (temperatureMap[i, j] >= temperatureCode_TemperateWarmLow && temperatureMap[i, j] < temperatureCode_subtropicalLow)
                                 {
                                     temperatureBitmapString[i, j] = "#ff8f00";
                                 }
-                                else if (temperatureMap[i, j] >= 68 && temperatureMap[i, j] < 86)
+
+
+
+
+
+                                /// Sub-Tropical Zone
+                                //  Subtropical
+                                else if (temperatureMap[i, j] >= temperatureCode_subtropicalLow && temperatureMap[i, j] < temperatureCode_tropicalBetaLow)
                                 {
                                     temperatureBitmapString[i, j] = "ff5400";
                                 }
-                                //  Tropical Zone
-                                else if (temperatureMap[i, j] >= 86 && temperatureMap[i, j] < 95)
+
+
+
+
+
+                                /// Tropical Zone
+                                //  Tropical Beta
+                                else if (temperatureMap[i, j] >= temperatureCode_tropicalBetaLow && temperatureMap[i, j] < temperatureCode_tropicalAlphaLow)
                                 {
                                     temperatureBitmapString[i, j] = "#ff0000";
                                 }
-                                else if (temperatureMap[i, j] >= 95 && temperatureMap[i, j] < 104)
+                                //  Tropical Alpha
+                                else if (temperatureMap[i, j] >= temperatureCode_tropicalAlphaLow && temperatureMap[i, j] < temperatureCode_tropicalScorching)
                                 {
                                     temperatureBitmapString[i, j] = "c20000";
                                 }
-                                else if (temperatureMap[i, j] >= 104)
+
+
+                                /// Super-Hot Zone
+                                //  Scorching
+                                else if (temperatureMap[i, j] >= temperatureCode_tropicalScorching)
                                 {
                                     temperatureBitmapString[i, j] = "610000";
                                 }
@@ -94,7 +155,113 @@ namespace testProgram
                             }
                             else
                             {
-                                temperatureBitmapString[i, j] =  "D6D6D6";
+                                /// Super-Frozen Zone
+                                //  Frozen
+                                if (temperatureMap[i, j] < temperatureCode_polarUltimaHigh)
+                                {
+                                    temperatureBitmapString[i, j] = "#989898";
+                                }
+
+
+
+                                /// Polar Zone
+                                //  Polar Delta
+                                else if (temperatureMap[i, j] >= temperatureCode_polarUltimaHigh && temperatureMap[i, j] < temperatureCode_polarDeltaLow)
+                                {
+                                    temperatureBitmapString[i, j] = "#9B9B9B";
+                                }
+                                //  Polar Gamma
+                                else if (temperatureMap[i, j] >= temperatureCode_polarDeltaLow && temperatureMap[i, j] < temperatureCode_polarBetaLow)
+                                {
+                                    temperatureBitmapString[i, j] = "#9E9E9E";
+                                }
+                                //  Polar Beta
+                                else if (temperatureMap[i, j] >= temperatureCode_polarBetaLow && temperatureMap[i, j] < temperatureCode_polarAlphaLow)
+                                {
+                                    temperatureBitmapString[i, j] = "#A1A1A1";
+                                }
+                                //  Polar Alpha
+                                else if (temperatureMap[i, j] >= temperatureCode_polarAlphaLow && temperatureMap[i, j] < temperatureCode_subpolarBetaLow)
+                                {
+                                    temperatureBitmapString[i, j] = "#A5A5A5";
+                                }
+
+
+
+
+
+
+                                /// Sub-Polar Zone
+                                //  Sub-Polar Beta
+                                else if (temperatureMap[i, j] >= temperatureCode_subpolarBetaLow && temperatureMap[i, j] < temperatureCode_subpolarAlphaLow)
+                                {
+                                    temperatureBitmapString[i, j] = "#A9A9A9";
+                                }
+                                //  Sub-Polar Alpha
+                                else if (temperatureMap[i, j] >= temperatureCode_subpolarAlphaLow && temperatureMap[i, j] < temperatureCode_TemperateColdLow)
+                                {
+                                    temperatureBitmapString[i, j] = "#AEAEAE";
+                                }
+
+
+
+
+                                /// Temperate Zone
+                                //  Cold Temperate
+                                else if (temperatureMap[i, j] >= temperatureCode_TemperateColdLow && temperatureMap[i, j] < temperatureCode_TemperateLow)
+                                {
+                                    temperatureBitmapString[i, j] = "#B3B3B3";
+                                }
+                                //  Temperate
+                                else if (temperatureMap[i, j] >= temperatureCode_TemperateLow && temperatureMap[i, j] < temperatureCode_TemperateWarmLow)
+                                {
+                                    temperatureBitmapString[i, j] = "#B9B9B9";
+                                }
+                                //  Warm Temperate 
+                                else if (temperatureMap[i, j] >= temperatureCode_TemperateWarmLow && temperatureMap[i, j] < temperatureCode_subtropicalLow)
+                                {
+                                    temperatureBitmapString[i, j] = "#C0C0C0";
+                                }
+
+
+
+
+
+                                /// Sub-Tropical Zone
+                                //  Subtropical
+                                else if (temperatureMap[i, j] >= temperatureCode_subtropicalLow && temperatureMap[i, j] < temperatureCode_tropicalBetaLow)
+                                {
+                                    temperatureBitmapString[i, j] = "#CFCFCF";
+                                }
+
+
+
+
+
+                                /// Tropical Zone
+                                //  Tropical Beta
+                                else if (temperatureMap[i, j] >= temperatureCode_tropicalBetaLow && temperatureMap[i, j] < temperatureCode_tropicalAlphaLow)
+                                {
+                                    temperatureBitmapString[i, j] = "#D8D8D8";
+                                }
+                                //  Tropical Alpha
+                                else if (temperatureMap[i, j] >= temperatureCode_tropicalAlphaLow && temperatureMap[i, j] < temperatureCode_tropicalScorching)
+                                {
+                                    temperatureBitmapString[i, j] = "#E2E2E2";
+                                }
+
+
+                                /// Super-Hot Zone
+                                //  Scorching
+                                else if (temperatureMap[i, j] >= temperatureCode_tropicalScorching)
+                                {
+                                    temperatureBitmapString[i, j] = "EDEDED";
+                                }
+
+
+
+
+                                //
                             }
                         }
                     }
@@ -122,8 +289,8 @@ namespace testProgram
 
 
                     int randomSeed = random.Next(-9999, 9999);
-                    int minValTemperature = 0;
-                    int maxValTemperature = 80;
+                    int minValTemperature = -50;
+                    int maxValTemperature = 90;
                     double waveval = 5.5;
                     int[,] temperatureMap = Utility.Noise.Gradients.GenerateGradientNoise(LandMap.GetLength(0), LandMap.GetLength(1), minValTemperature, maxValTemperature, false, random.Next(-999789, 779999), waveval);
                     
