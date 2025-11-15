@@ -3,6 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 using System.Diagnostics;
 using System.Drawing;
 using System.Globalization;
+using System.Linq;
 using System.Numerics;
 using System.Text;
 using System.Text.Json;
@@ -359,7 +360,9 @@ namespace Utility
         //  Collapses a list of lists into a new list
         public static List<T> CollapseLists<T>(List<List<T>> source)
         {
-            if (source == null) throw new ArgumentNullException(nameof(source));
+            if (source == null) { 
+                throw new ArgumentNullException(nameof(source)); 
+            }
 
             // Pre-allocate to reduce reallocations if you want:
             int totalCount = 0;
@@ -378,6 +381,32 @@ namespace Utility
             return result;
         }
 
+        /// <summary>
+        /// Given a 2D array of numbers, find every instance of a unique value; return a list of those values
+        /// </summary>
+        public static List<T> GetUniqueFromArray<T>(T [,] array)
+        {
+            List<T> allValues = new List<T>();
+            if (array == null)
+            {
+                return allValues;
+            }
+
+            //  First, get all unique values
+            for (int i = 0; i < array.GetLength(0); i++)
+            {
+                for (int j = 0; j < array.GetLength(1); j++)
+                {
+                    if (!(allValues.Contains(array[i, j])))
+                    {
+                        allValues.Add(array[i, j]);
+                    }
+                }
+
+            }
+
+            return allValues;
+        }
 
         public class Sets
         {
@@ -403,292 +432,323 @@ namespace Utility
         //  Select regions within a list
         public class Selection
         {
-
-            #region Select and return all cells within ranges
-            /// <summary>
-            /// Selects and returns a list of all sections of orthogonally connected cells within a range
-            /// </summary>
-            public static List<List<Coords>> SelectCellsWithinRange(int[,] grid, int rangeMin, int rangeMax, bool horizontalWrapping = false, bool verticalWrapping = false)
+            public class IslandSelector
             {
-                int rows = grid.GetLength(0);
-                int cols = grid.GetLength(1);
-                bool[,] visited = new bool[rows, cols];
-                var islands = new List<List<Coords>>();
-
-                // Direction vectors: Up, Down, Left, Right
-                int[] dx = { -1, 1, 0, 0 };
-                int[] dy = { 0, 0, -1, 1 };
-
-                bool InRange(int value) => value >= rangeMin && value <= rangeMax;
-
-                for (int x = 0; x < rows; x++)
+                /// <summary>
+                /// Selects and returns a list of all sections of orthogonally connected cells within a range
+                /// </summary>
+                public static List<List<Coords>> SelectSectionsLists(int[,] grid, int rangeMin, int rangeMax, bool horizontalWrapping = false, bool verticalWrapping = false)
                 {
-                    for (int y = 0; y < cols; y++)
+                    int rows = grid.GetLength(0);
+                    int cols = grid.GetLength(1);
+                    bool[,] visited = new bool[rows, cols];
+                    var islands = new List<List<Coords>>();
+
+                    // Direction vectors: Up, Down, Left, Right
+                    int[] dx = { -1, 1, 0, 0 };
+                    int[] dy = { 0, 0, -1, 1 };
+
+                    bool InRange(int value) => value >= rangeMin && value <= rangeMax;
+
+                    for (int x = 0; x < rows; x++)
                     {
-                        if (visited[x, y]) continue;
-                        if (!InRange(grid[x, y])) continue;
-
-                        // Start a new island
-                        var island = new List<Coords>();
-                        var queue = new Queue<Coords>();
-                        queue.Enqueue(new Coords(x, y));
-                        visited[x, y] = true;
-
-                        while (queue.Count > 0)
+                        for (int y = 0; y < cols; y++)
                         {
-                            var current = queue.Dequeue();
-                            island.Add(current);
+                            if (visited[x, y]) continue;
+                            if (!InRange(grid[x, y])) continue;
 
-                            for (int dir = 0; dir < 4; dir++)
+                            // Start a new island
+                            var island = new List<Coords>();
+                            var queue = new Queue<Coords>();
+                            queue.Enqueue(new Coords(x, y));
+                            visited[x, y] = true;
+
+                            while (queue.Count > 0)
                             {
-                                int nx = current.x + dx[dir];
-                                int ny = current.y + dy[dir];
+                                var current = queue.Dequeue();
+                                island.Add(current);
 
-                                // Handle wrapping
-                                if (nx < 0)
-                                    nx = verticalWrapping ? rows - 1 : -1;
-                                else if (nx >= rows)
-                                    nx = verticalWrapping ? 0 : -1;
-
-                                if (ny < 0)
-                                    ny = horizontalWrapping ? cols - 1 : -1;
-                                else if (ny >= cols)
-                                    ny = horizontalWrapping ? 0 : -1;
-
-                                // Skip invalid moves
-                                if (nx == -1 || ny == -1) continue;
-
-                                // Check range and visited state
-                                if (!visited[nx, ny] && InRange(grid[nx, ny]))
+                                for (int dir = 0; dir < 4; dir++)
                                 {
-                                    visited[nx, ny] = true;
-                                    queue.Enqueue(new Coords(nx, ny));
+                                    int nx = current.x + dx[dir];
+                                    int ny = current.y + dy[dir];
+
+                                    // Handle wrapping
+                                    if (nx < 0)
+                                        nx = verticalWrapping ? rows - 1 : -1;
+                                    else if (nx >= rows)
+                                        nx = verticalWrapping ? 0 : -1;
+
+                                    if (ny < 0)
+                                        ny = horizontalWrapping ? cols - 1 : -1;
+                                    else if (ny >= cols)
+                                        ny = horizontalWrapping ? 0 : -1;
+
+                                    // Skip invalid moves
+                                    if (nx == -1 || ny == -1) continue;
+
+                                    // Check range and visited state
+                                    if (!visited[nx, ny] && InRange(grid[nx, ny]))
+                                    {
+                                        visited[nx, ny] = true;
+                                        queue.Enqueue(new Coords(nx, ny));
+                                    }
                                 }
                             }
-                        }
 
-                        islands.Add(island);
-                    }
-                }
-
-                return islands;
-            }
-
-            /// <summary>
-            /// Selects and returns a list of all sections of orthogonally connected cells within a range
-            /// </summary>
-            public static List<Coords> SelectCellsWithinRangeCollapsed(int[,] grid, int rangeMin, int rangeMax, bool horizontalWrapping = false, bool verticalWrapping = false)
-            {
-                List<List<Coords>> uncollpasedList = SelectCellsWithinRange(grid, rangeMin, rangeMax, horizontalWrapping, verticalWrapping);
-                List<Coords> collapsedList = Utility.Lists.CollapseLists(uncollpasedList);
-                return collapsedList;
-            }
-
-
-            /// <summary>
-            /// Selects and returns a list of all edges of sections of orthogonally connected cells within a range
-            /// </summary>
-            public static List<List<Coords>> SelectCellsWithinRangeEdge(int[,] grid, int rangeMin, int rangeMax, int rangeEdge, bool innerSelect = true, bool horizontalWrapping = false, bool verticalWrapping = false)
-            {
-                int rows = grid.GetLength(0);
-                int cols = grid.GetLength(1);
-                bool[,] visited = new bool[rows, cols];
-                var result = new List<List<Coords>>();
-
-                int[] dxOrth = { -1, 1, 0, 0 };
-                int[] dyOrth = { 0, 0, -1, 1 };
-                int[] dxAll = { -1, -1, -1, 0, 0, 1, 1, 1 };
-                int[] dyAll = { -1, 0, 1, -1, 1, -1, 0, 1 };
-
-                bool InRange(int val) => val >= rangeMin && val <= rangeMax;
-
-                // Helper: Wrap coordinate if needed, or mark invalid
-                (int x, int y)? Wrap(int x, int y)
-                {
-                    if (x < 0)
-                        x = verticalWrapping ? rows - 1 : -1;
-                    else if (x >= rows)
-                        x = verticalWrapping ? 0 : -1;
-
-                    if (y < 0)
-                        y = horizontalWrapping ? cols - 1 : -1;
-                    else if (y >= cols)
-                        y = horizontalWrapping ? 0 : -1;
-
-                    if (x == -1 || y == -1) return null;
-                    return (x, y);
-                }
-
-                // Step 1: Identify all island cells
-                bool[,] isIsland = new bool[rows, cols];
-                for (int x = 0; x < rows; x++)
-                    for (int y = 0; y < cols; y++)
-                        if (InRange(grid[x, y]))
-                            isIsland[x, y] = true;
-
-                // Step 2: Identify border cells
-                bool[,] isBorder = new bool[rows, cols];
-                for (int x = 0; x < rows; x++)
-                {
-                    for (int y = 0; y < cols; y++)
-                    {
-                        if (!isIsland[x, y]) continue;
-
-                        // Check all 8 neighbors
-                        foreach (var (dx, dy) in Neighbors(dxAll, dyAll))
-                        {
-                            var n = Wrap(x + dx, y + dy);
-                            if (n == null) continue;
-                            int nx = n.Value.x;
-                            int ny = n.Value.y;
-
-                            if (!InRange(grid[nx, ny]))
-                            {
-                                isBorder[x, y] = true;
-                                break;
-                            }
+                            islands.Add(island);
                         }
                     }
+
+                    return islands;
                 }
 
-                // Step 3: Determine selection region (inner or outer)
-                bool[,] selectMask = new bool[rows, cols];
-
-                if (innerSelect)
+                /// <summary>
+                /// Selects and returns a list of all sections of orthogonally connected cells within a range
+                /// </summary>
+                public static List<Coords> SelectSectionsList(int[,] grid, int rangeMin, int rangeMax, bool horizontalWrapping = false, bool verticalWrapping = false)
                 {
-                    // Expand border cells inward (still within islands)
-                    ExpandBorders(isBorder, isIsland, selectMask, rangeEdge, true, Wrap);
-                }
-                else
-                {
-                    // Expand outward into non-island cells
-                    ExpandBorders(isBorder, isIsland, selectMask, rangeEdge, false, Wrap);
+                    List<List<Coords>> uncollpasedList = SelectSectionsLists(grid, rangeMin, rangeMax, horizontalWrapping, verticalWrapping);
+                    List<Coords> collapsedList = Utility.Lists.CollapseLists(uncollpasedList);
+                    return collapsedList;
                 }
 
-                // Step 4: Group connected cells (orthogonal BFS)
-                for (int x = 0; x < rows; x++)
+
+                /// <summary>
+                /// Selects and returns a list of all edges of sections of orthogonally connected cells within a range
+                /// </summary>
+                /// 
+
+                public static List<List<Coords>> SelectSectionsBorderLists(int[,] grid, int rangeMin, int rangeMax, int rangeEdge, bool innerSelect = true, bool horizontalWrapping = false, bool verticalWrapping = false)
                 {
-                    for (int y = 0; y < cols; y++)
+                    int rows = grid.GetLength(0);
+                    int cols = grid.GetLength(1);
+                    bool[,] visited = new bool[rows, cols];
+                    var result = new List<List<Coords>>();
+
+                    int[] dxOrth = { -1, 1, 0, 0 };
+                    int[] dyOrth = { 0, 0, -1, 1 };
+                    int[] dxAll = { -1, -1, -1, 0, 0, 1, 1, 1 };
+                    int[] dyAll = { -1, 0, 1, -1, 1, -1, 0, 1 };
+
+                    bool InRange(int val) => val >= rangeMin && val <= rangeMax;
+
+                    // Helper: Wrap coordinate if needed, or mark invalid
+                    (int x, int y)? Wrap(int x, int y)
                     {
-                        if (!selectMask[x, y] || visited[x, y])
-                            continue;
+                        if (x < 0)
+                            x = verticalWrapping ? rows - 1 : -1;
+                        else if (x >= rows)
+                            x = verticalWrapping ? 0 : -1;
 
-                        var region = new List<Coords>();
-                        var queue = new Queue<Coords>();
-                        queue.Enqueue(new Coords(x, y));
-                        visited[x, y] = true;
+                        if (y < 0)
+                            y = horizontalWrapping ? cols - 1 : -1;
+                        else if (y >= cols)
+                            y = horizontalWrapping ? 0 : -1;
 
-                        while (queue.Count > 0)
+                        if (x == -1 || y == -1) return null;
+                        return (x, y);
+                    }
+
+                    // Step 1: Identify all island cells
+                    bool[,] isIsland = new bool[rows, cols];
+                    for (int x = 0; x < rows; x++)
+                        for (int y = 0; y < cols; y++)
+                            if (InRange(grid[x, y]))
+                                isIsland[x, y] = true;
+
+                    // Step 2: Identify border cells
+                    bool[,] isBorder = new bool[rows, cols];
+                    for (int x = 0; x < rows; x++)
+                    {
+                        for (int y = 0; y < cols; y++)
                         {
-                            var cur = queue.Dequeue();
-                            region.Add(cur);
+                            if (!isIsland[x, y]) continue;
 
-                            for (int d = 0; d < 4; d++)
+                            // Check all 8 neighbors
+                            foreach (var (dx, dy) in Neighbors(dxAll, dyAll))
                             {
-                                var n = Wrap(cur.x + dxOrth[d], cur.y + dyOrth[d]);
+                                var n = Wrap(x + dx, y + dy);
                                 if (n == null) continue;
                                 int nx = n.Value.x;
                                 int ny = n.Value.y;
 
-                                if (selectMask[nx, ny] && !visited[nx, ny])
+                                if (!InRange(grid[nx, ny]))
                                 {
-                                    visited[nx, ny] = true;
-                                    queue.Enqueue(new Coords(nx, ny));
+                                    isBorder[x, y] = true;
+                                    break;
                                 }
                             }
                         }
-
-                        result.Add(region);
                     }
+
+                    // Step 3: Determine selection region (inner or outer)
+                    bool[,] selectMask = new bool[rows, cols];
+
+                    if (innerSelect)
+                    {
+
+                        // Expand border cells inward (still within islands)
+                        ExpandBorders(isBorder, isIsland, selectMask, rangeEdge, true, Wrap);
+                    }
+                    else
+                    {
+
+                        // Expand outward into non-island cells
+                        ExpandBorders(isBorder, isIsland, selectMask, rangeEdge, false, Wrap);
+                    }
+
+                    // Step 4: Group connected cells (orthogonal BFS)
+                    for (int x = 0; x < rows; x++)
+                    {
+                        for (int y = 0; y < cols; y++)
+                        {
+                            if (!selectMask[x, y] || visited[x, y])
+                                continue;
+
+                            var region = new List<Coords>();
+                            var queue = new Queue<Coords>();
+                            queue.Enqueue(new Coords(x, y));
+                            visited[x, y] = true;
+
+                            while (queue.Count > 0)
+                            {
+                                var cur = queue.Dequeue();
+                                region.Add(cur);
+
+                                for (int d = 0; d < 4; d++)
+                                {
+                                    var n = Wrap(cur.x + dxOrth[d], cur.y + dyOrth[d]);
+                                    if (n == null) continue;
+                                    int nx = n.Value.x;
+                                    int ny = n.Value.y;
+
+                                    if (selectMask[nx, ny] && !visited[nx, ny])
+                                    {
+                                        visited[nx, ny] = true;
+                                        queue.Enqueue(new Coords(nx, ny));
+                                    }
+                                }
+                            }
+
+                            result.Add(region);
+                        }
+                    }
+
+                    return result;
+                }
+                /// <summary>
+                /// Selects and returns a list of all edges of sections of orthogonally connected cells within a range
+                /// </summary>
+                public static List<Coords> SelectSectionBordersList(int[,] grid, int rangeMin, int rangeMax, int rangeEdge, bool innerSelect = true, bool horizontalWrapping = false, bool verticalWrapping = false)
+                {
+                    List<List<Coords>> uncollpasedList = SelectSectionsBorderLists(grid, rangeMin, rangeMax, rangeEdge, innerSelect, horizontalWrapping, verticalWrapping);
+                    List<Coords> collapsedList = Utility.Lists.CollapseLists(uncollpasedList);
+                    return collapsedList;
                 }
 
-                return result;
-            }
-            /// <summary>
-            /// Selects and returns a list of all edges of sections of orthogonally connected cells within a range
-            /// </summary>
-            public static List<Coords> SelectCellsWithinRangeEdgeCollapsed(int[,] grid, int rangeMin, int rangeMax, int rangeEdge, bool innerSelect = true, bool horizontalWrapping = false, bool verticalWrapping = false)
-            {
-                List<List<Coords>> uncollpasedList = SelectCellsWithinRangeEdge(grid, rangeMin, rangeMax, rangeEdge, innerSelect, horizontalWrapping, verticalWrapping);
-                List<Coords> collapsedList = Utility.Lists.CollapseLists(uncollpasedList);
-                return collapsedList;
-            }
 
 
-
-            // Enumerate tuple pairs
-            private static IEnumerable<(int, int)> Neighbors(int[] dx, int[] dy)
-            {
-                for (int i = 0; i < dx.Length; i++)
-                    yield return (dx[i], dy[i]);
-            }
-
-            // Expands from border cells using Manhattan distance
-            private static void ExpandBorders(bool[,] isBorder, bool[,] isIsland, bool[,] selectMask, int rangeEdge, bool inward, Func<int, int, (int x, int y)?> wrapFunc)
-            {
-                int rows = isBorder.GetLength(0);
-                int cols = isBorder.GetLength(1);
-                int[] dxAll = { -1, -1, -1, 0, 0, 1, 1, 1 };
-                int[] dyAll = { -1, 0, 1, -1, 1, -1, 0, 1 };
-
-                var dist = new int[rows, cols];
-                for (int i = 0; i < rows; i++)
-                    for (int j = 0; j < cols; j++)
-                        dist[i, j] = int.MaxValue;
-
-                var queue = new Queue<(int x, int y)>();
-
-                // Initialize border cells
-                for (int x = 0; x < rows; x++)
+                public static List<List<Coords>> CreateAllSectionsList(int[,] grid, bool horizontalWrapping = false, bool verticalWrapping = false)
                 {
-                    for (int y = 0; y < cols; y++)
-                    {
-                        if (isBorder[x, y])
+                    List<List<Coords>> allSections = new List<List<Coords>>();
+                    List<int> allValues = Lists.GetUniqueFromArray(grid);
+
+                    foreach (int value in allValues) {
+                        List<List<Coords>> islandsAtValue = SelectSectionsLists(grid, value, value, horizontalWrapping, verticalWrapping);
+                        foreach (List<Coords> listOfCoords in islandsAtValue)
                         {
-                            queue.Enqueue((x, y));
-                            dist[x, y] = 0;
+                            allSections.Add(listOfCoords);
+                        }
+                    }
+
+
+
+                    return allSections;
+                }
+
+
+
+
+
+
+
+
+
+
+                // Expands from border cells using Manhattan distance
+                private static void ExpandBorders(bool[,] isBorder, bool[,] isIsland, bool[,] selectMask, int rangeEdge, bool inward, Func<int, int, (int x, int y)?> wrapFunc)
+                {
+                    int rows = isBorder.GetLength(0);
+                    int cols = isBorder.GetLength(1);
+                    int[] dxAll = { -1, -1, -1, 0, 0, 1, 1, 1 };
+                    int[] dyAll = { -1, 0, 1, -1, 1, -1, 0, 1 };
+
+                    var dist = new int[rows, cols];
+                    for (int i = 0; i < rows; i++)
+                        for (int j = 0; j < cols; j++)
+                            dist[i, j] = int.MaxValue;
+
+                    var queue = new Queue<(int x, int y)>();
+
+                    // Initialize border cells
+                    for (int x = 0; x < rows; x++)
+                    {
+                        for (int y = 0; y < cols; y++)
+                        {
+                            if (isBorder[x, y])
+                            {
+                                queue.Enqueue((x, y));
+                                dist[x, y] = 0;
+                            }
+                        }
+                    }
+
+                    while (queue.Count > 0)
+                    {
+                        var (cx, cy) = queue.Dequeue();
+
+                        if (dist[cx, cy] <= rangeEdge)
+                        {
+                            if (inward && isIsland[cx, cy])
+                                selectMask[cx, cy] = true;
+                            else if (!inward && !isIsland[cx, cy])
+                                selectMask[cx, cy] = true;
+                        }
+
+                        if (dist[cx, cy] == rangeEdge)
+                            continue; // stop expanding
+
+                        foreach (var (dx, dy) in Neighbors(dxAll, dyAll))
+                        {
+                            var n = wrapFunc(cx + dx, cy + dy);
+                            if (n == null) continue;
+                            int nx = n.Value.x;
+                            int ny = n.Value.y;
+
+                            int newDist = dist[cx, cy] + 1;
+                            if (newDist < dist[nx, ny])
+                            {
+                                dist[nx, ny] = newDist;
+                                queue.Enqueue((nx, ny));
+                            }
                         }
                     }
                 }
-
-                while (queue.Count > 0)
+                // Enumerate tuple pairs
+                private static IEnumerable<(int, int)> Neighbors(int[] dx, int[] dy)
                 {
-                    var (cx, cy) = queue.Dequeue();
-
-                    if (dist[cx, cy] <= rangeEdge)
-                    {
-                        if (inward && isIsland[cx, cy])
-                            selectMask[cx, cy] = true;
-                        else if (!inward && !isIsland[cx, cy])
-                            selectMask[cx, cy] = true;
-                    }
-
-                    if (dist[cx, cy] == rangeEdge)
-                        continue; // stop expanding
-
-                    foreach (var (dx, dy) in Neighbors(dxAll, dyAll))
-                    {
-                        var n = wrapFunc(cx + dx, cy + dy);
-                        if (n == null) continue;
-                        int nx = n.Value.x;
-                        int ny = n.Value.y;
-
-                        int newDist = dist[cx, cy] + 1;
-                        if (newDist < dist[nx, ny])
-                        {
-                            dist[nx, ny] = newDist;
-                            queue.Enqueue((nx, ny));
-                        }
-                    }
+                    for (int i = 0; i < dx.Length; i++)
+                        yield return (dx[i], dy[i]);
                 }
+
             }
 
+            
 
 
 
 
-
-            #endregion
 
             #region Select Sections within specified regions
             //  Get a list of Coords within a circular region around a center, in radius radius 
@@ -791,16 +851,49 @@ namespace Utility
         //  This section performs transformation of matrices and matrix content
         public class Geometry()
         {
-
-
             #region Transformation Helpers
             //  This function gets the Coords closest to index [0,0], priorizing rows over columns.
             public static Coords GetStartingPoint(IEnumerable<Coords> cells)
             {
-                if (cells == null) { throw new ArgumentNullException(nameof(cells)); }
-                if (!cells.Any()) { throw new ArgumentException("Collection is empty.", nameof(cells)); }
+                if (cells == null) {
+                    throw new ArgumentNullException(nameof(cells)); 
+                }
+                if (!cells.Any()) { 
+                    throw new ArgumentException("Collection is empty.", nameof(cells)); 
+                }
+                
+                
+                int rowMin = 0;
+                int colMin = 0;
 
-                return cells.OrderBy(c => c.x).ThenBy(c => c.y).First();
+                //  First get the limit
+                foreach (Coords coords in cells)
+                {
+                    if (coords.x > rowMin)
+                    {
+                        rowMin = coords.x;
+                    }
+                    if (coords.y > colMin)
+                    {
+                        colMin = coords.y;
+                    }
+                    
+                }
+
+                //  Then, get the smallest value available
+                foreach (Coords cell in cells)
+                {
+                    if (cell.x < rowMin)
+                    {
+                        rowMin = cell.x;
+                    }
+                    if (cell.y < colMin)
+                    {
+                        colMin = cell.y;
+                    }
+                }
+
+                return new Coords(rowMin, colMin);
             }
             //  This function gets the Coords closest to the "center of mass" of a group of Coords
             public static Coords GetCenterOfMass(IEnumerable<Coords> cells)
@@ -829,10 +922,6 @@ namespace Utility
             }
             #endregion
             
-
-
-
-
             public static List<Coords> TranslateSection(IEnumerable<Coords> cells, int rows, int cols, Coords startingPoint, bool centerMassed = true, bool horizontalWrapping = false, bool verticalWrapping = false)
             {
                 if (cells == null)
@@ -1443,8 +1532,8 @@ namespace Utility
 
                     //  Create a list of cells not to be checked
                     List<Coords> cellsExcluded = new List<Coords>();
-                    List<List<Coords>> cellsWithinRangeLoL = Utility.Matrices.Selection.SelectCellsWithinRange(inputArray, rangeMin, rangeMax, horizontalWrapping, verticalWrapping);
-                    List<List<Coords>> cellsWithinRangeDistLoL = Utility.Matrices.Selection.SelectCellsWithinRangeEdge(inputArray, rangeMin, rangeMax, distance, false, horizontalWrapping, verticalWrapping);
+                    List<List<Coords>> cellsWithinRangeLoL = Selection.IslandSelector.SelectSectionsLists(inputArray, rangeMin, rangeMax, horizontalWrapping, verticalWrapping);
+                    List<List<Coords>> cellsWithinRangeDistLoL = Selection.IslandSelector.SelectSectionsBorderLists(inputArray, rangeMin, rangeMax, distance, false, horizontalWrapping, verticalWrapping);
                     cellsExcluded.AddRange(Utility.Lists.CollapseLists(cellsWithinRangeLoL));
                     cellsExcluded.AddRange(Utility.Lists.CollapseLists(cellsWithinRangeDistLoL));
 
@@ -1505,7 +1594,7 @@ namespace Utility
                     var toRemove = new List<Coords>();
                     var toAdd = new List<Coords>();
 
-                    var borderRegions = Matrices.Selection.SelectCellsWithinRangeEdge(grid, rangeMin, rangeMax, 1,horizontalWrapping, verticalWrapping, true);
+                    var borderRegions = Selection.IslandSelector.SelectSectionsBorderLists(grid, rangeMin, rangeMax, 1,horizontalWrapping, verticalWrapping, true);
 
                     int rows = grid.GetLength(0);
                     int cols = grid.GetLength(1);
@@ -1580,13 +1669,7 @@ namespace Utility
                 private static List<Coords> OrderBorder(List<Coords> border)
                     => border.OrderBy(c => c.x + c.y * 0.001).ToList();
 
-                private static (double x, double y) EstimateOutwardNormal(
-                    Coords c,
-                    int[,] grid,
-                    Func<int, bool> InRange,
-                    Func<int, int, (int, int)?> Wrap,
-                    int[] dxAll,
-                    int[] dyAll)
+                private static (double x, double y) EstimateOutwardNormal(Coords c, int[,] grid, Func<int, bool> InRange, Func<int, int, (int, int)?> Wrap, int[] dxAll, int[] dyAll)
                 {
                     double nx = 0, ny = 0;
                     for (int i = 0; i < dxAll.Length; i++)
@@ -1605,6 +1688,43 @@ namespace Utility
                     double len = Math.Sqrt(nx * nx + ny * ny);
                     return (len == 0) ? (0, 0) : (nx / len, ny / len);
                 }
+
+
+                /// <summary>
+                /// Generates adaptive noise parameters for coastline randomization,
+                /// based on the given perimeter length.
+                /// Returns: [Amplitude, Frequency, Smoothness, Octaves, Persistence]
+                // </summary>
+                public static double[] GetParameters(int perimeterLength)
+                {
+                    if (perimeterLength <= 0)
+                        return new double[] { 1.0, 0.01, 1.0, 1.0, 0.5 }; // defaults
+
+                    // Amplitude: max displacement (1–10)
+                    double amplitude = Math.Clamp(perimeterLength * 0.005, 0.5, 10.0);
+
+                    // Frequency: lower for larger islands (0.001–0.05)
+                    double frequency = Math.Clamp(1.0 / (perimeterLength / 200.0), 0.001, 0.05);
+
+                    // Smoothness: increases with perimeter (1–5)
+                    double smoothness = Math.Clamp(perimeterLength / 500.0, 1.0, 5.0);
+
+                    // Octaves: small = 1–2, medium = 3–4, large = 5–6
+                    double octaves = Math.Clamp(Math.Round(perimeterLength / 300.0), 1.0, 6.0);
+
+                    // Persistence: smaller islands keep high detail, larger lose it gradually (0.6 → 0.3)
+                    double t = Math.Clamp(perimeterLength / 3000.0, 0.0, 1.0);
+                    double persistence = Lerp(0.6, 0.3, t);
+
+                    return new double[] { amplitude, frequency, smoothness, octaves, persistence };
+                }
+
+                private static double Lerp(double a, double b, double t)
+                {
+                    return a + (b - a) * t;
+                }
+
+
             }
 
 
@@ -1647,9 +1767,6 @@ namespace Utility
             }
             public static int[,] ConvertCoordstoArray(List<Coords> listCoords, int rows, int cols)
             {
-                List<List<Coords>> superlistCoords = new List<List<Coords>>();
-                superlistCoords.Add(listCoords);
-
                 int[,] array = new int[rows, cols];
                 //  Initialize array
 
@@ -1662,23 +1779,20 @@ namespace Utility
                 }
 
                 int ID = 1;
-                foreach (List<Coords> coordslist in superlistCoords)
+                foreach (Coords coords in listCoords)
                 {
-                    foreach (Coords coord in coordslist)
+                    if (coords.x <= rows || coords.y <= cols)
                     {
-                        array[coord.x, coord.y] = ID;
+                        array[coords.x, coords.y] = ID;
                     }
+                    
                     ID++;
 
                 }
 
-
-
                 return array;
             }
             #endregion
-
-
 
 
             //  TODO: Make this better
@@ -2335,7 +2449,16 @@ namespace Utility
                 {
                     throw new ArgumentNullException(nameof(path), "The path cannot be null.");
                 }
-                Bitmap bitmap = new Bitmap(path);
+                Bitmap bitmap = null;
+                try { 
+                    bitmap = new Bitmap(path); 
+                }
+                catch {
+                    throw new ArgumentNullException(nameof(path), "The path is not valid");
+
+
+                }
+                
                 return bitmap;
             }
 
